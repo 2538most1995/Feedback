@@ -3,3 +3,5 @@ Thumbs.db
 *.log
 node_modules/
 .env
+api/config.local.php
+config.local.php
