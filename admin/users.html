@@ -372,11 +372,9 @@
         let allUsers = [];
 
         document.addEventListener('DOMContentLoaded', async () => {
-            const authed = await checkAuth();
-            if (authed) {
-                loadMyProfile();
-                loadUsersList();
-            }
+            await checkAuth();
+            loadMyProfile();
+            loadUsersList();
         });
 
         // Helper to toggle show/hide password

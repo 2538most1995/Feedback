@@ -3,23 +3,22 @@
 require_once 'config.php';
 
 // Ensure admins table exists with proper structure
-try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS admins (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(50) UNIQUE NOT NULL,
-        password_hash VARCHAR(255) NOT NULL,
-        fullname VARCHAR(100) NOT NULL,
-        role VARCHAR(50) DEFAULT 'admin',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-    // Add role column if missing in older schema
-    $colCheck = $pdo->query("SHOW COLUMNS FROM admins LIKE 'role'");
-    if (!$colCheck->fetch()) {
-        $pdo->exec("ALTER TABLE admins ADD COLUMN role VARCHAR(50) DEFAULT 'admin' AFTER fullname");
+function checkHasRoleColumn($pdo) {
+    static $hasRole = null;
+    if ($hasRole !== null) return $hasRole;
+    try {
+        $colCheck = $pdo->query("SHOW COLUMNS FROM admins LIKE 'role'");
+        if ($colCheck && $colCheck->fetch()) {
+            $hasRole = true;
+            return true;
+        }
+        $pdo->exec("ALTER TABLE admins ADD COLUMN role VARCHAR(50) DEFAULT 'admin'");
+        $hasRole = true;
+        return true;
+    } catch (Exception $e) {
+        $hasRole = false;
+        return false;
     }
-} catch (Exception $e) {
-    // Ignore if table exists
 }
 
 requireAuth();
@@ -29,13 +28,21 @@ $method = $_SERVER['REQUEST_METHOD'];
 if ($method === 'GET') {
     // List all admins
     try {
-        $stmt = $pdo->query("SELECT id, username, fullname, role, created_at FROM admins ORDER BY id ASC");
+        $hasRole = checkHasRoleColumn($pdo);
+        $sql = $hasRole 
+            ? "SELECT id, username, fullname, role, created_at FROM admins ORDER BY id ASC"
+            : "SELECT id, username, fullname, 'admin' as role, created_at FROM admins ORDER BY id ASC";
+            
+        $stmt = $pdo->query($sql);
         $users = $stmt->fetchAll();
         
         // Add flag indicating if user is the currently logged in admin
-        $currentAdminId = (int)$_SESSION['admin_id'];
+        $currentAdminId = (int)($_SESSION['admin_id'] ?? 0);
         foreach ($users as &$u) {
             $u['is_current'] = ((int)$u['id'] === $currentAdminId);
+            if (!isset($u['role']) || empty($u['role'])) {
+                $u['role'] = 'admin';
+            }
         }
         
         jsonResponse($users, 200, "ดึงข้อมูลผู้ดูแลระบบสำเร็จ");
@@ -75,8 +82,15 @@ if ($method === 'GET') {
         }
 
         $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("INSERT INTO admins (username, password_hash, fullname, role) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$username, $passwordHash, $fullname, $role]);
+        $hasRole = checkHasRoleColumn($pdo);
+
+        if ($hasRole) {
+            $stmt = $pdo->prepare("INSERT INTO admins (username, password_hash, fullname, role) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$username, $passwordHash, $fullname, $role]);
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO admins (username, password_hash, fullname) VALUES (?, ?, ?)");
+            $stmt->execute([$username, $passwordHash, $fullname]);
+        }
         $newId = $pdo->lastInsertId();
 
         jsonResponse([
@@ -166,16 +180,28 @@ if ($method === 'GET') {
                 jsonResponse(null, 404, "ไม่พบข้อมูลผู้ใช้ที่ระบุ");
             }
 
+            $hasRole = checkHasRoleColumn($pdo);
+
             if (!empty($newPassword)) {
                 if (strlen($newPassword) < 6) {
                     jsonResponse(null, 400, "รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร");
                 }
                 $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
-                $stmtUpdate = $pdo->prepare("UPDATE admins SET fullname = ?, role = ?, password_hash = ? WHERE id = ?");
-                $stmtUpdate->execute([$fullname ?: $targetUser['fullname'], $role, $newHash, $targetUserId]);
+                if ($hasRole) {
+                    $stmtUpdate = $pdo->prepare("UPDATE admins SET fullname = ?, role = ?, password_hash = ? WHERE id = ?");
+                    $stmtUpdate->execute([$fullname ?: $targetUser['fullname'], $role, $newHash, $targetUserId]);
+                } else {
+                    $stmtUpdate = $pdo->prepare("UPDATE admins SET fullname = ?, password_hash = ? WHERE id = ?");
+                    $stmtUpdate->execute([$fullname ?: $targetUser['fullname'], $newHash, $targetUserId]);
+                }
             } else {
-                $stmtUpdate = $pdo->prepare("UPDATE admins SET fullname = ?, role = ? WHERE id = ?");
-                $stmtUpdate->execute([$fullname ?: $targetUser['fullname'], $role, $targetUserId]);
+                if ($hasRole) {
+                    $stmtUpdate = $pdo->prepare("UPDATE admins SET fullname = ?, role = ? WHERE id = ?");
+                    $stmtUpdate->execute([$fullname ?: $targetUser['fullname'], $role, $targetUserId]);
+                } else {
+                    $stmtUpdate = $pdo->prepare("UPDATE admins SET fullname = ? WHERE id = ?");
+                    $stmtUpdate->execute([$fullname ?: $targetUser['fullname'], $targetUserId]);
+                }
             }
 
             if ($targetUserId === $currentAdminId && !empty($fullname)) {

@@ -2,15 +2,15 @@
 
 // Auth check using PHP sessions
 async function checkAuth() {
-    if (window.location.href.includes('login.html')) return;
+    if (window.location.href.includes('login.html')) return false;
 
     try {
         const res = await fetch('../api/auth.php', { credentials: 'include' });
         const json = await res.json();
 
-        if (!json.success) {
+        if (!json || !json.success) {
             window.location.href = 'login.html';
-            return;
+            return false;
         }
 
         // Update UI with admin name
@@ -23,9 +23,11 @@ async function checkAuth() {
         if (avatarEl && adminData.fullname) {
             avatarEl.textContent = adminData.fullname.substring(0, 2).toUpperCase();
         }
+        return true;
     } catch (err) {
         console.error('Auth check failed:', err);
         window.location.href = 'login.html';
+        return false;
     }
 }
 
