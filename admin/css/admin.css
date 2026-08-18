@@ -93,12 +93,14 @@ body {
   z-index: 998;
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
   transition: all 0.3s ease;
 }
 
 .sidebar-backdrop.active {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
 }
 
 /* Sidebar */
@@ -771,10 +773,11 @@ select.form-control {
   justify-content: center;
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
   transition: all 0.25s ease;
   padding: 16px;
 }
-.modal-backdrop.active { opacity: 1; visibility: visible; }
+.modal-backdrop.active { opacity: 1; visibility: visible; pointer-events: auto; }
 .modal-content {
   background: var(--card);
   border-radius: 16px;

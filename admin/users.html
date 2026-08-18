@@ -502,12 +502,12 @@
                 console.error('Load users error:', err);
                 if (emptyState) {
                     emptyState.innerHTML = getEmptyStateHtml({
-                        icon: 'fa-exclamation-triangle',
+                        icon: 'fas fa-exclamation-triangle',
                         title: 'ไม่สามารถโหลดรายชื่อผู้ใช้ได้',
-                        description: err.message || 'โปรดตรวจสอบการเชื่อมต่อเซิร์ฟเวอร์',
+                        desc: err.message || 'โปรดตรวจสอบการเชื่อมต่อเซิร์ฟเวอร์',
                         actionText: 'ลองใหม่อีกครั้ง',
-                        actionIcon: 'fa-sync-alt',
-                        onAction: 'loadUsersList()'
+                        actionIcon: 'fas fa-sync-alt',
+                        actionOnClick: 'loadUsersList()'
                     });
                     emptyState.style.display = 'block';
                 }
@@ -523,11 +523,12 @@
                 if (tableContainer) tableContainer.style.display = 'none';
                 if (emptyState) {
                     emptyState.innerHTML = getEmptyStateHtml({
-                        icon: 'fa-user-slash',
+                        icon: 'fas fa-user-slash',
                         title: 'ยังไม่มีผู้ดูแลระบบในระบบ',
-                        description: 'คลิกปุ่มด้านล่างเพื่อเพิ่มผู้ดูแลระบบคนแรก',
+                        desc: 'คลิกปุ่มด้านล่างเพื่อเพิ่มผู้ดูแลระบบคนแรก',
                         actionText: '+ เพิ่มผู้ดูแลระบบ',
-                        onAction: 'openAddUserModal()'
+                        actionIcon: 'fas fa-user-plus',
+                        actionOnClick: 'openAddUserModal()'
                     });
                     emptyState.style.display = 'block';
                 }
@@ -582,13 +583,22 @@
 
         // Add User Modal
         function openAddUserModal() {
+            const modal = document.getElementById('addUserModal');
+            if (!modal) return;
             document.getElementById('addUserForm').reset();
-            document.getElementById('addUserModal').style.display = 'flex';
-            setTimeout(() => document.getElementById('addUsername').focus(), 100);
+            modal.classList.add('active');
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                const input = document.getElementById('addUsername');
+                if (input) input.focus();
+            }, 100);
         }
 
         function closeAddUserModal() {
-            document.getElementById('addUserModal').style.display = 'none';
+            const modal = document.getElementById('addUserModal');
+            if (!modal) return;
+            modal.classList.remove('active');
+            modal.style.display = 'none';
         }
 
         async function handleAddUserSubmit(e) {
@@ -647,15 +657,24 @@
 
         // Reset Password Modal for Other Users
         function openResetPasswordModal(userId, username) {
+            const modal = document.getElementById('resetPasswordModal');
+            if (!modal) return;
             document.getElementById('resetPasswordForm').reset();
             document.getElementById('resetUserId').value = userId;
             document.getElementById('resetTargetUsername').textContent = username;
-            document.getElementById('resetPasswordModal').style.display = 'flex';
-            setTimeout(() => document.getElementById('resetNewPassword').focus(), 100);
+            modal.classList.add('active');
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                const input = document.getElementById('resetNewPassword');
+                if (input) input.focus();
+            }, 100);
         }
 
         function closeResetPasswordModal() {
-            document.getElementById('resetPasswordModal').style.display = 'none';
+            const modal = document.getElementById('resetPasswordModal');
+            if (!modal) return;
+            modal.classList.remove('active');
+            modal.style.display = 'none';
         }
 
         async function handleResetPasswordSubmit(e) {

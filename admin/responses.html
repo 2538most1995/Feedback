@@ -133,7 +133,14 @@
                     <h1 class="page-title">ข้อมูลผู้ตอบแบบประเมิน</h1>
                 </div>
                 <div class="header-right">
-                    <div class="date-display" id="currentDate">--</div>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-outline" onclick="exportResponsesCsv()" id="exportCsvBtn" title="ส่งออกเป็นไฟล์ CSV">
+                            <i class="fas fa-file-csv" style="color: #0284C7;"></i> <span>ส่งออก CSV</span>
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="exportResponsesExcel()" id="exportExcelBtn" title="ส่งออกเป็นไฟล์ Excel">
+                            <i class="fas fa-file-excel"></i> <span>ส่งออก Excel</span>
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -443,6 +450,87 @@
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
         }
+
+        // ========== Export Functions ==========
+        function getExportData() {
+            if (!allResponses || allResponses.length === 0) {
+                showToast('ไม่มีข้อมูลผู้ตอบแบบประเมินให้ส่งออก', 'warning');
+                return null;
+            }
+            return allResponses.map((r, idx) => ({
+                'ลำดับ': idx + 1,
+                'แบบประเมิน': r.survey_title || '-',
+                'เพศ': r.gender || '-',
+                'อายุ': r.age_range || '-',
+                'บทบาท/ผู้ตอบ': r.role || '-',
+                'คะแนนเฉลี่ย': r.avg_rating != null ? parseFloat(r.avg_rating).toFixed(2) : '-',
+                'วันที่ตอบ': r.submitted_at || '-'
+            }));
+        }
+
+        function exportResponsesExcel() {
+            const data = getExportData();
+            if (!data) return;
+
+            if (typeof XLSX === 'undefined') {
+                showToast('กำลังโหลดไลบรารี Excel กรุณารอสักครู่...', 'info');
+                const s = document.createElement('script');
+                s.src = 'https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js';
+                s.onload = () => exportResponsesExcel();
+                s.onerror = () => showToast('ไม่สามารถโหลดไลบรารี Excel ได้ กรุณาตรวจสอบอินเทอร์เน็ต', 'error');
+                document.head.appendChild(s);
+                return;
+            }
+
+            try {
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Responses');
+
+                // Auto-fit column widths
+                const colWidths = Object.keys(data[0]).map(key => ({
+                    wch: Math.max(key.length * 2, ...data.map(row => String(row[key] || '').length * 1.5)) + 2
+                }));
+                ws['!cols'] = colWidths;
+
+                const fileName = `ผู้ตอบแบบประเมิน_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                showToast('ส่งออกไฟล์ Excel สำเร็จ!', 'success');
+            } catch (err) {
+                console.error('Excel export error:', err);
+                showToast('เกิดข้อผิดพลาดในการส่งออก Excel', 'error');
+            }
+        }
+
+        function exportResponsesCsv() {
+            const data = getExportData();
+            if (!data) return;
+
+            try {
+                const headers = Object.keys(data[0]);
+                const csvRows = [
+                    '\uFEFF' + headers.join(','), // BOM for Thai encoding
+                    ...data.map(row => headers.map(h => {
+                        const val = String(row[h] || '');
+                        return val.includes(',') || val.includes('"') || val.includes('\n')
+                            ? `"${val.replace(/"/g, '""')}"` : val;
+                    }).join(','))
+                ];
+
+                const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ผู้ตอบแบบประเมิน_${new Date().toISOString().slice(0, 10)}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('ส่งออกไฟล์ CSV สำเร็จ!', 'success');
+            } catch (err) {
+                console.error('CSV export error:', err);
+                showToast('เกิดข้อผิดพลาดในการส่งออก CSV', 'error');
+            }
+        }
     </script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 </body>
 </html>
