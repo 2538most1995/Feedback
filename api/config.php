@@ -14,12 +14,34 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS
     exit();
 }
 
-// 1. ตรวจสอบว่ามีไฟล์ config.local.php (แยกเฉพาะเครื่อง/เซิร์ฟเวอร์ และไม่ถูก git ทับ) หรือไม่
-if (file_exists(__DIR__ . '/config.local.php')) {
-    require_once __DIR__ . '/config.local.php';
+// 1. โหลดค่าจากไฟล์ .env หากมี (ทั้งในรูทและใน api/)
+$envPaths = [__DIR__ . '/.env', __DIR__ . '/../.env'];
+foreach ($envPaths as $envPath) {
+    if (file_exists($envPath)) {
+        $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || strpos($line, '#') === 0) continue;
+            if (strpos($line, '=') !== false) {
+                list($envKey, $envVal) = explode('=', $line, 2);
+                $envKey = trim($envKey);
+                $envVal = trim(trim($envVal), "\"'");
+                putenv("$envKey=$envVal");
+                $_ENV[$envKey] = $envVal;
+                $_SERVER[$envKey] = $envVal;
+            }
+        }
+    }
 }
 
-// 2. ตรวจสอบสภาพแวดล้อม (Local MAMP vs Live Server)
+// 2. โหลดไฟล์ config.local.php หากมี (ไฟล์นี้อยู่ใน .gitignore จะไม่ถูก Git บันทึกหรือดึงทับบน Server)
+if (file_exists(__DIR__ . '/config.local.php')) {
+    require_once __DIR__ . '/config.local.php';
+} elseif (file_exists(__DIR__ . '/../config.local.php')) {
+    require_once __DIR__ . '/../config.local.php';
+}
+
+// 3. ตรวจสอบสภาพแวดล้อม (Local MAMP vs Live Server)
 $isLocalhost = (php_sapi_name() === 'cli')
             || in_array($_SERVER['HTTP_HOST'] ?? '', ['localhost', '127.0.0.1', 'localhost:8888', 'localhost:80', 'localhost:8080']) 
             || strpos($_SERVER['HTTP_HOST'] ?? '', '127.0.0.1') !== false
