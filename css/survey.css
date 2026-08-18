@@ -374,15 +374,51 @@
 
 @media (max-width: 480px) {
     .survey-info {
-        padding: 1rem;
+        padding: 1.15rem 0.85rem;
     }
     
     .section-content {
-        padding: 1rem 0.6rem;
+        padding: 1rem 0.5rem;
+    }
+
+    .emoji-rating {
+        gap: 2px;
+    }
+
+    .emoji-rating .emoji {
+        width: clamp(34px, 8.5vw, 44px);
+        height: clamp(34px, 8.5vw, 44px);
+        font-size: clamp(1.2rem, 3.8vw, 1.6rem);
+        margin-bottom: 2px;
+    }
+
+    .emoji-rating label span.rating-num {
+        font-size: 0.95rem;
+    }
+
+    .emoji-rating label span.rating-text {
+        font-size: 0.62rem;
+        letter-spacing: -0.02em;
     }
     
     .btn-submit {
         width: 100%;
         max-width: 100%;
+    }
+}
+
+@media (max-width: 360px) {
+    .section-content {
+        padding: 0.85rem 0.25rem;
+    }
+
+    .emoji-rating label span.rating-text {
+        font-size: 0.55rem;
+    }
+
+    .emoji-rating .emoji {
+        width: 32px;
+        height: 32px;
+        font-size: 1.15rem;
     }
 }

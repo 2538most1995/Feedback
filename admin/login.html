@@ -2,103 +2,172 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เข้าสู่ระบบ - ระบบประเมินความพึงพอใจ</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>เข้าสู่ระบบผู้ดูแล - ระบบประเมินความพึงพอใจ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/admin.css">
 </head>
 <body class="login-body">
-    <div class="login-card animate-slide-up">
-        <div class="login-logo">
-            <i class="fas fa-clipboard-check"></i>
-        </div>
-        <h1 class="login-title">เข้าสู่ระบบ</h1>
-        <p class="login-subtitle">ระบบประเมินความพึงพอใจ (Admin Dashboard)</p>
-        
-        <div id="loginError" class="login-error">
-            ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง
+    <!-- Ambient Floating Background Orbs -->
+    <div class="login-orb login-orb-1"></div>
+    <div class="login-orb login-orb-2"></div>
+    <div class="login-orb login-orb-3"></div>
+
+    <div class="login-container animate-slide-up">
+        <!-- Top Navigation -->
+        <div class="login-nav-top">
+            <a href="../index.html" class="back-home-link" title="กลับสู่หน้าหลัก">
+                <i class="fas fa-arrow-left"></i>
+                <span>กลับสู่หน้าหลัก</span>
+            </a>
+            <span style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem;">Feedback Admin</span>
         </div>
 
-        <form id="loginForm">
-            <div class="form-group">
-                <label class="form-label">ชื่อผู้ใช้งาน</label>
-                <div class="input-icon-wrapper">
-                    <i class="fas fa-user"></i>
-                    <input type="text" id="username" class="form-control" placeholder="Username" required>
+        <!-- Glassmorphism Login Card -->
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo-badge">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <h1 class="login-title">เข้าสู่ระบบผู้ดูแล</h1>
+                <p class="login-subtitle">ระบบจัดการและวิเคราะห์ผลแบบประเมินความพึงพอใจ</p>
+            </div>
+            
+            <div id="loginError" class="login-error">
+                <i class="fas fa-exclamation-circle" style="font-size: 1.1rem; flex-shrink: 0;"></i>
+                <span id="loginErrorText">ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง</span>
+            </div>
+
+            <form id="loginForm" autocomplete="on">
+                <div class="form-group">
+                    <label for="username" class="form-label">
+                        <i class="fas fa-user-circle" style="color: var(--primary); margin-right: 4px;"></i> ชื่อผู้ใช้งาน (Username)
+                    </label>
+                    <div class="input-icon-wrapper">
+                        <input type="text" id="username" class="form-control" placeholder="ระบุชื่อผู้ใช้งาน เช่น admin" required autocomplete="username" autofocus>
+                        <i class="fas fa-user input-icon"></i>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label for="password" class="form-label" style="margin-bottom: 0;">
+                            <i class="fas fa-key" style="color: var(--primary); margin-right: 4px;"></i> รหัสผ่าน (Password)
+                        </label>
+                    </div>
+                    <div class="input-icon-wrapper">
+                        <input type="password" id="password" class="form-control" placeholder="ระบุรหัสผ่านของคุณ" required autocomplete="current-password">
+                        <i class="fas fa-lock input-icon"></i>
+                        <button type="button" class="password-toggle" id="togglePassword" title="แสดง/ซ่อนรหัสผ่าน" aria-label="แสดง/ซ่อนรหัสผ่าน">
+                            <i class="far fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="login-options">
+                    <label class="remember-label">
+                        <input type="checkbox" id="remember" checked>
+                        <span>จดจำฉันไว้ในระบบ</span>
+                    </label>
+                </div>
+                
+                <button type="submit" class="login-btn" id="submitLoginBtn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>เข้าสู่ระบบ</span>
+                </button>
+            </form>
+
+            <!-- Test Credentials Hint Box -->
+            <div class="login-hint-box">
+                <i class="fas fa-info-circle" style="color: var(--primary); font-size: 1.1rem; flex-shrink: 0;"></i>
+                <div>
+                    <div>บัญชีผู้ดูแลเริ่มต้นสำหรับทดสอบ:</div>
+                    <div>User: <strong>admin</strong> | Pass: <strong>admin123</strong></div>
                 </div>
             </div>
-            
-            <div class="form-group">
-                <label class="form-label">รหัสผ่าน</label>
-                <div class="input-icon-wrapper">
-                    <i class="fas fa-lock"></i>
-                    <input type="password" id="password" class="form-control" placeholder="Password" required>
-                    <button type="button" class="password-toggle" id="togglePassword">
-                        <i class="far fa-eye"></i>
-                    </button>
-                </div>
+
+            <!-- Security Badge -->
+            <div class="login-security-badge">
+                <i class="fas fa-shield-alt"></i>
+                <span>ระบบรักษาความปลอดภัย SSL 256-bit Encrypted</span>
             </div>
-            
-            <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
-                <input type="checkbox" id="remember" style="accent-color: var(--primary);">
-                <label for="remember" style="font-size: 0.875rem; color: var(--text-light); cursor: pointer;">จดจำฉันไว้ในระบบ</label>
-            </div>
-            
-            <button type="submit" class="login-btn">เข้าสู่ระบบ</button>
-        </form>
+        </div>
     </div>
 
     <script>
-        document.getElementById('togglePassword').addEventListener('click', function() {
+        document.addEventListener('DOMContentLoaded', () => {
+            const togglePassword = document.getElementById('togglePassword');
             const passwordInput = document.getElementById('password');
-            const icon = this.querySelector('i');
-            
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
-        });
-
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+            const loginForm = document.getElementById('loginForm');
             const errorDiv = document.getElementById('loginError');
-            const loginBtn = this.querySelector('button[type="submit"]');
-            
-            errorDiv.style.display = 'none';
-            loginBtn.disabled = true;
-            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังเข้าสู่ระบบ...';
+            const errorText = document.getElementById('loginErrorText');
+            const loginBtn = document.getElementById('submitLoginBtn');
+            const loginCard = document.querySelector('.login-card');
 
-            try {
-                const res = await fetch('../api/auth.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ username, password })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    window.location.href = 'index.html';
+            // Toggle Password Visibility
+            togglePassword.addEventListener('click', function(e) {
+                e.preventDefault();
+                const icon = this.querySelector('i');
+                
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                    this.setAttribute('title', 'ซ่อนรหัสผ่าน');
                 } else {
-                    throw new Error(data.message || 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง');
+                    passwordInput.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                    this.setAttribute('title', 'แสดงรหัสผ่าน');
                 }
-            } catch (err) {
-                errorDiv.textContent = err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
-                errorDiv.style.display = 'block';
-                const card = document.querySelector('.login-card');
-                card.style.animation = 'none';
-                card.offsetHeight;
-                card.style.animation = 'shake 0.4s ease-in-out';
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'เข้าสู่ระบบ';
-            }
+                passwordInput.focus();
+            });
+
+            // Login submission
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+                
+                errorDiv.style.display = 'none';
+                loginBtn.disabled = true;
+                loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>กำลังตรวจสอบข้อมูล...</span>';
+
+                try {
+                    const res = await fetch('../api/auth.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ username, password })
+                    });
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        loginBtn.innerHTML = '<i class="fas fa-check-circle"></i> <span>เข้าสู่ระบบสำเร็จ!</span>';
+                        loginBtn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 500);
+                    } else {
+                        throw new Error(data.message || 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง');
+                    }
+                } catch (err) {
+                    errorText.textContent = err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง';
+                    errorDiv.style.display = 'flex';
+                    
+                    loginCard.classList.remove('shake');
+                    void loginCard.offsetWidth; // Trigger reflow for animation restart
+                    loginCard.classList.add('shake');
+                    
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> <span>เข้าสู่ระบบ</span>';
+                    loginBtn.style.background = '';
+                    
+                    document.getElementById('password').value = '';
+                    document.getElementById('password').focus();
+                }
+            });
         });
     </script>
 </body>

@@ -2,33 +2,106 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>ระบบประเมินความพึงพอใจ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <header class="hero-banner">
+    <!-- Top Navigation Bar with Admin Button -->
+    <header class="site-header">
         <div class="container">
-            <h1>ระบบประเมินความพึงพอใจ</h1>
-            <p>เก็บรวบรวมความคิดเห็น เพื่อนำไปพัฒนาการให้บริการที่ดียิ่งขึ้น</p>
+            <nav class="navbar">
+                <a href="index.html" class="brand-link">
+                    <div class="brand-icon">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div class="brand-text">
+                        <span class="brand-title">ระบบประเมินความพึงพอใจ</span>
+                        <span class="brand-subtitle">Feedback & Evaluation System</span>
+                    </div>
+                </a>
+                <div>
+                    <a href="admin/login.html" class="btn-admin-nav" id="adminNavBtn" title="เข้าสู่ระบบจัดการสำหรับแอดมิน">
+                        <i class="fas fa-user-shield"></i>
+                        <span>จัดการระบบ (Admin)</span>
+                    </a>
+                </div>
+            </nav>
         </div>
     </header>
 
-    <main class="container">
-        <div id="loading" class="spinner hidden"></div>
-        <div id="surveyGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            <!-- Surveys will be loaded here via JS -->
+    <!-- Hero Banner -->
+    <section class="hero-banner">
+        <div class="container hero-content">
+            <div class="hero-badge">
+                <i class="fas fa-star" style="color: #FCD34D;"></i>
+                <span>แบบประเมินความพึงพอใจออนไลน์</span>
+            </div>
+            <h1>ร่วมประเมินความพึงพอใจ</h1>
+            <p>ความคิดเห็นของท่านมีคุณค่ายิ่ง เพื่อนำไปพัฒนาและปรับปรุงการให้บริการที่ดียิ่งขึ้น</p>
+            
+            <div class="survey-filter-bar">
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="search" id="surveySearch" placeholder="ค้นหาชื่อแบบประเมิน หรือ หมวดหมู่..." autocomplete="off">
+                </div>
+            </div>
         </div>
-        <div id="emptyState" class="hidden text-center mt-4">
-            <i class="fas fa-clipboard-list fa-3x" style="color: var(--text-secondary); margin-bottom: 1rem;"></i>
-            <h3>ยังไม่มีแบบประเมินในขณะนี้</h3>
-            <p style="color: var(--text-secondary);">โปรดกลับมาตรวจสอบอีกครั้งในภายหลัง</p>
+    </section>
+
+    <!-- Main Content Area -->
+    <main class="container">
+        <!-- Section Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+                <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.2rem;">
+                    <i class="fas fa-layer-group" style="color: var(--primary); margin-right: 0.5rem;"></i> แบบประเมินที่เปิดรับในขณะนี้
+                </h2>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">เลือกแบบประเมินที่ต้องการตอบข้อมูล</p>
+            </div>
+            <div id="surveyCountBadge" style="font-size: 0.85rem; color: var(--text-secondary); background: white; padding: 0.35rem 0.85rem; border-radius: var(--radius-full); border: 1px solid var(--border);">
+                กำลังโหลดรายการ...
+            </div>
+        </div>
+
+        <div id="loading" class="spinner"></div>
+        
+        <div id="surveyGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            <!-- Surveys dynamically injected via JS -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden text-center mt-4 card" style="padding: 3rem 1.5rem; background: white; border-radius: var(--radius-lg);">
+            <div style="width: 70px; height: 70px; border-radius: 50%; background: #EEF2FF; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 1.25rem auto;">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <h3 style="font-size: 1.2rem; color: var(--text-primary); margin-bottom: 0.5rem;">ยังไม่มีแบบประเมินในขณะนี้</h3>
+            <p style="color: var(--text-secondary); max-width: 420px; margin: 0 auto; font-size: 0.9rem;">ขณะนี้ยังไม่มีแบบประเมินที่เปิดให้ทำ โปรดกลับมาตรวจสอบใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบ</p>
+        </div>
+
+        <!-- No Search Results State -->
+        <div id="noSearchResults" class="hidden text-center mt-4 card" style="padding: 2.5rem 1.5rem; background: white;">
+            <i class="fas fa-search fa-2x" style="color: var(--text-muted); margin-bottom: 1rem;"></i>
+            <h3 style="font-size: 1.1rem; color: var(--text-primary); margin-bottom: 0.35rem;">ไม่พบแบบประเมินที่ตรงกับคำค้นหา</h3>
+            <p style="color: var(--text-secondary); font-size: 0.875rem;">ลองเปลี่ยนคำค้นหา หรือล้างช่องค้นหาเพื่อดูแบบประเมินทั้งหมด</p>
         </div>
     </main>
 
-    <footer class="container text-center mt-4 mb-4" style="color: var(--text-secondary); font-size: 0.875rem;">
-        <p>&copy; 2026 ระบบประเมินความพึงพอใจ</p>
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container footer-content">
+            <div>
+                <p style="margin: 0; font-weight: 500;">&copy; 2026 ระบบประเมินความพึงพอใจ</p>
+                <p style="margin: 0.2rem 0 0 0; font-size: 0.78rem; color: var(--text-muted);">พัฒนาเพื่อการเก็บรวบรวมข้อมูลและการประเมินผลอย่างมีประสิทธิภาพ</p>
+            </div>
+            <div class="footer-links">
+                <a href="index.html"><i class="fas fa-home"></i> หน้าหลัก</a>
+                <span style="color: var(--border);">|</span>
+                <a href="admin/login.html"><i class="fas fa-lock"></i> เข้าสู่ระบบแอดมิน</a>
+            </div>
+        </div>
     </footer>
 
     <script>
@@ -36,6 +109,63 @@
             const loading = document.getElementById('loading');
             const surveyGrid = document.getElementById('surveyGrid');
             const emptyState = document.getElementById('emptyState');
+            const noSearchResults = document.getElementById('noSearchResults');
+            const surveySearch = document.getElementById('surveySearch');
+            const surveyCountBadge = document.getElementById('surveyCountBadge');
+
+            let allSurveys = [];
+
+            const renderSurveys = (surveys) => {
+                surveyGrid.innerHTML = '';
+                
+                if (surveys.length === 0) {
+                    if (allSurveys.length > 0) {
+                        noSearchResults.classList.remove('hidden');
+                        emptyState.classList.add('hidden');
+                    } else {
+                        emptyState.classList.remove('hidden');
+                        noSearchResults.classList.add('hidden');
+                    }
+                    return;
+                }
+
+                emptyState.classList.add('hidden');
+                noSearchResults.classList.add('hidden');
+
+                surveys.forEach(survey => {
+                    const card = document.createElement('div');
+                    card.className = 'survey-card animate-fade';
+                    
+                    const descText = survey.description ? survey.description.replace(/<[^>]*>?/gm, '') : 'ไม่มีคำอธิบาย';
+                    const categoryText = survey.category ? survey.category : 'ทั่วไป';
+                    const responseCount = parseInt(survey.response_count) || 0;
+
+                    card.innerHTML = `
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                                <span class="survey-card-tag">${categoryText}</span>
+                                <span style="font-size: 0.75rem; color: var(--success); background: #ECFDF5; padding: 2px 8px; border-radius: 999px; font-weight: 500;">
+                                    <i class="fas fa-circle" style="font-size: 0.5rem; vertical-align: middle; margin-right: 2px;"></i> เปิดรับข้อมูล
+                                </span>
+                            </div>
+                            <h3 class="survey-card-title">
+                                <a href="survey.html?id=${survey.id}">${survey.title}</a>
+                            </h3>
+                            <p class="survey-card-desc">${descText}</p>
+                        </div>
+                        <div class="survey-card-footer">
+                            <span class="survey-respondent-count">
+                                <i class="fas fa-users" style="color: var(--primary);"></i>
+                                <span>${responseCount.toLocaleString()} ผู้ตอบ</span>
+                            </span>
+                            <a href="survey.html?id=${survey.id}" class="btn btn-primary" style="padding: 0.55rem 1.15rem; font-size: 0.875rem; border-radius: 10px;">
+                                ทำแบบประเมิน <i class="fas fa-arrow-right" style="font-size: 0.8rem; margin-left: 2px;"></i>
+                            </a>
+                        </div>
+                    `;
+                    surveyGrid.appendChild(card);
+                });
+            };
 
             const fetchSurveys = async () => {
                 loading.classList.remove('hidden');
@@ -45,37 +175,36 @@
                     
                     loading.classList.add('hidden');
 
-                    const surveys = json.data || [];
-                    
-                    if (surveys.length === 0) {
-                        emptyState.classList.remove('hidden');
-                        return;
-                    }
-
-                    surveys.forEach(survey => {
-                        const card = document.createElement('div');
-                        card.className = 'card';
-                        card.style.cursor = 'pointer';
-                        card.style.transition = 'transform 0.2s ease, box-shadow 0.2s ease';
-                        card.addEventListener('mouseenter', () => { card.style.transform = 'translateY(-4px)'; card.style.boxShadow = '0 12px 24px rgba(0,0,0,0.1)'; });
-                        card.addEventListener('mouseleave', () => { card.style.transform = ''; card.style.boxShadow = ''; });
-                        card.innerHTML = `
-                            <span style="background: linear-gradient(135deg, #818CF8, #4F46E5); color: white; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; display: inline-block;">${survey.category || 'ทั่วไป'}</span>
-                            <h3 style="margin-top: 1rem; margin-bottom: 0.5rem;"><a href="survey.html?id=${survey.id}" style="color: inherit; text-decoration: none;">${survey.title}</a></h3>
-                            <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">${survey.description || ''}</p>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-                                <span style="color: var(--text-secondary); font-size: 0.875rem;"><i class="fas fa-users"></i> ${survey.response_count || 0} ผู้ตอบ</span>
-                                <a href="survey.html?id=${survey.id}" class="btn btn-outline" style="padding: 0.5rem 1.25rem; font-size: 0.875rem; border-radius: 12px;">ทำแบบประเมิน <i class="fas fa-arrow-right" style="margin-left:4px;"></i></a>
-                            </div>
-                        `;
-                        surveyGrid.appendChild(card);
-                    });
+                    allSurveys = json.data || [];
+                    surveyCountBadge.innerHTML = `พบ <strong>${allSurveys.length}</strong> แบบประเมิน`;
+                    renderSurveys(allSurveys);
                 } catch (err) {
-                    console.error(err);
+                    console.error('Error fetching surveys:', err);
                     loading.classList.add('hidden');
+                    surveyCountBadge.textContent = 'เกิดข้อผิดพลาด';
                     emptyState.classList.remove('hidden');
                 }
             };
+
+            // Search filter with instant reactive response
+            surveySearch.addEventListener('input', (e) => {
+                const keyword = e.target.value.trim().toLowerCase();
+                if (!keyword) {
+                    renderSurveys(allSurveys);
+                    surveyCountBadge.innerHTML = `พบ <strong>${allSurveys.length}</strong> แบบประเมิน`;
+                    return;
+                }
+
+                const filtered = allSurveys.filter(s => {
+                    const titleMatch = (s.title || '').toLowerCase().includes(keyword);
+                    const descMatch = (s.description || '').toLowerCase().includes(keyword);
+                    const catMatch = (s.category || '').toLowerCase().includes(keyword);
+                    return titleMatch || descMatch || catMatch;
+                });
+
+                surveyCountBadge.innerHTML = `พบ <strong>${filtered.length}</strong> / ${allSurveys.length} รายการ`;
+                renderSurveys(filtered);
+            });
             
             fetchSurveys();
         });
