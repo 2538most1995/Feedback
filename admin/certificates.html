@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ออกเกียรติบัตร - ระบบประเมินความพึงพอใจ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;600;700&family=Charm:wght@400;700&family=Taviraj:wght@400;600&family=Krub:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <style>
+        .cert-container {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+        @media (max-width: 1100px) {
+            .cert-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Certificate Settings Panel */
+        .settings-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+
+        .settings-section {
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .settings-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .section-heading {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bg-presets-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .bg-preset-btn {
+            padding: 8px 10px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: center;
+            font-family: inherit;
+        }
+        .bg-preset-btn.active, .bg-preset-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: #EEF2FF;
+        }
+        .bg-preset-color-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            display: inline-block;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* Certificate Stage / Canvas Area */
+        .stage-wrapper {
+            background: #64748B;
+            padding: 24px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 600px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.15);
+            overflow: auto;
+        }
+
+        .stage-toolbar {
+            width: 100%;
+            max-width: 840px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            color: white;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* The Visual Certificate Sheet (A4 Landscape aspect ratio: 297mm x 210mm ~ 840px x 594px) */
+        #certSheet {
+            width: 840px;
+            height: 594px;
+            position: relative;
+            background-color: #FFFFFF;
+            box-shadow: 0 10px 35px rgba(0,0,0,0.3);
+            border-radius: 4px;
+            overflow: visible !important;
+            user-select: none;
+            transform-origin: top center;
+            transition: box-shadow 0.2s;
+        }
+
+        /* Certificate Background Presets */
+        .cert-bg-gold-luxury {
+            background: radial-gradient(circle at center, #FFFFFF 0%, #FFFDF5 60%, #FEF9C3 100%);
+            border: 18px double #D97706;
+            outline: 2px solid #B45309;
+            outline-offset: -10px;
+        }
+        .cert-bg-blue-modern {
+            background: linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 50%, #E0E7FF 100%);
+            border: 16px solid #3B82F6;
+            outline: 2px dashed #1D4ED8;
+            outline-offset: -8px;
+        }
+        .cert-bg-emerald-green {
+            background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 60%, #BBF7D0 100%);
+            border: 18px double #059669;
+            outline: 2px solid #047857;
+            outline-offset: -10px;
+        }
+        .cert-bg-purple-regal {
+            background: linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 60%, #E9D5FF 100%);
+            border: 18px double #7C3AED;
+            outline: 2px solid #6D28D9;
+            outline-offset: -10px;
+        }
+        .cert-bg-minimal-white {
+            background: #FFFFFF;
+            border: 8px solid #1E293B;
+            outline: 1px solid #94A3B8;
+            outline-offset: -4px;
+        }
+
+        /* Draggable & Editable Element on Certificate */
+        .cert-element {
+            position: absolute;
+            cursor: grab;
+            touch-action: none;
+            transition: outline 0.15s, box-shadow 0.15s;
+            outline: 1.5px dashed transparent;
+            padding: 6px 12px;
+            border-radius: 6px;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            transform: translate(-50%, -50%);
+            white-space: pre-line;
+            word-break: break-word;
+            user-select: none;
+            box-sizing: border-box;
+        }
+        .cert-element:active {
+            cursor: grabbing;
+        }
+        .cert-element:hover {
+            outline: 1.5px dashed #6366F1;
+            background: rgba(99, 102, 241, 0.04);
+        }
+        .cert-element.selected {
+            outline: 2px solid #4F46E5 !important;
+            background: rgba(79, 70, 229, 0.08) !important;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.18);
+        }
+        .cert-element.is-editing {
+            cursor: text !important;
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            outline: 2.5px solid #10B981 !important;
+            background: #FFFFFF !important;
+            box-shadow: 0 4px 25px rgba(16, 185, 129, 0.4) !important;
+            z-index: 500 !important;
+        }
+
+        /* Text Inner Container */
+        .el-text-inner {
+            width: 100%;
+            outline: none;
+            white-space: pre-line;
+            word-break: break-word;
+            display: block;
+        }
+        .cert-element.is-editing .el-text-inner {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            cursor: text !important;
+            min-width: 60px;
+        }
+
+        /* Floating Action Toolbar on Selected Canvas Element */
+        .element-floating-bar {
+            position: absolute;
+            background: #0F172A;
+            border: 1.5px solid #334155;
+            border-radius: 30px;
+            padding: 5px 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            z-index: 1000;
+            pointer-events: auto;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .element-floating-bar::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px 6px 0;
+            border-style: solid;
+            border-color: #0F172A transparent transparent;
+        }
+        .element-floating-bar.bar-below::after {
+            bottom: auto;
+            top: -6px;
+            border-width: 0 6px 6px;
+            border-style: solid;
+            border-color: transparent transparent #0F172A;
+        }
+        .float-btn {
+            background: #334155;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 5px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.15s;
+            font-family: inherit;
+        }
+        .float-btn:hover {
+            background: #4F46E5;
+            border-color: #6366F1;
+            transform: translateY(-1px);
+        }
+        .float-btn:active {
+            transform: translateY(0);
+        }
+        .float-btn-edit {
+            background: #10B981;
+            border-color: #34D399;
+        }
+        .float-btn-edit:hover {
+            background: #059669;
+        }
+        .float-size-label {
+            color: #38BDF8;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 0 6px;
+            min-width: 46px;
+            text-align: center;
+        }
+
+        /* 4 Corner Resize Handles */
+        .resize-handle {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #FFFFFF;
+            border: 2.5px solid #4F46E5;
+            border-radius: 50%;
+            z-index: 60;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+            display: none;
+            touch-action: none;
+        }
+        .cert-element:hover .resize-handle,
+        .cert-element.selected .resize-handle {
+            display: block;
+        }
+        .cert-element.is-editing .resize-handle,
+        .cert-element.is-editing .element-floating-bar {
+            display: none !important;
+        }
+        .handle-tl { top: -7px; left: -7px; cursor: nwse-resize; }
+        .handle-tr { top: -7px; right: -7px; cursor: nesw-resize; }
+        .handle-bl { bottom: -7px; left: -7px; cursor: nesw-resize; }
+        .handle-br { bottom: -7px; right: -7px; cursor: nwse-resize; }
+
+        /* Live Resize Tooltip Badge */
+        .resize-tooltip {
+            position: absolute;
+            bottom: -32px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0F172A;
+            color: #38BDF8;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 70;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: none;
+        }
+
+        /* Inner typography */
+        .el-logo img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+        .el-title {
+            font-family: 'Prompt', 'Sarabun', sans-serif;
+            font-weight: 700;
+            letter-spacing: 1px;
+            line-height: 1.3;
+            white-space: pre-line;
+        }
+        .el-subtitle {
+            font-family: 'Sarabun', 'Prompt', sans-serif;
+            font-weight: 500;
+            white-space: pre-line;
+        }
+        .el-recipient {
+            font-family: 'Prompt', 'Sarabun', sans-serif;
+            font-weight: 700;
+            line-height: 1.3;
+            white-space: pre-line;
+        }
+        .el-body {
+            font-family: 'Sarabun', 'Prompt', sans-serif;
+            font-weight: 400;
+            line-height: 1.6;
+            max-width: 650px;
+            white-space: pre-line;
+        }
+        .el-date {
+            font-family: 'Sarabun', 'Prompt', sans-serif;
+            font-weight: 500;
+            white-space: pre-line;
+        }
+        .el-signature {
+            min-height: 30px;
+            min-width: 80px;
+        }
+        .el-signature img {
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+        .el-issuer-name {
+            font-family: 'Sarabun', 'Prompt', sans-serif;
+            font-weight: 600;
+            line-height: 1.3;
+            white-space: pre-line;
+        }
+        .el-issuer-title {
+            font-family: 'Sarabun', 'Prompt', sans-serif;
+            font-size: 0.85em;
+            color: #64748B;
+            white-space: pre-line;
+        }
+
+        /* Toggle switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #CBD5E1;
+            transition: .3s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 18px; width: 18px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #10B981; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .form-hint {
+            font-size: 0.78rem;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <i class="fas fa-clipboard-check"></i>
+                <span>FeedbackAdmin</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item">
+                    <i class="fas fa-home"></i> หน้าหลัก
+                </a>
+                <a href="surveys.html" class="nav-item">
+                    <i class="fas fa-clipboard-list"></i> แบบประเมิน
+                </a>
+                <a href="stats.html" class="nav-item">
+                    <i class="fas fa-chart-bar"></i> รายงานผล
+                </a>
+                <a href="responses.html" class="nav-item">
+                    <i class="fas fa-users"></i> ผู้ตอบแบบประเมิน
+                </a>
+                <a href="certificates.html" class="nav-item active">
+                    <i class="fas fa-award"></i> ออกเกียรติบัตร
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-bell"></i> การแจ้งเตือน
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-cog"></i> ตั้งค่า
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-avatar">AD</div>
+                <div class="user-info">
+                    <div class="user-name">แอดมิน ระบบ</div>
+                    <div class="user-role">ผู้ดูแลระบบ</div>
+                </div>
+                <button class="logout-btn" onclick="logout()" title="ออกจากระบบ">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="mobile-toggle" id="mobileToggle"><i class="fas fa-bars"></i></button>
+                    <h1 class="page-title">ระบบออกเกียรติบัตร (Certificate Designer)</h1>
+                </div>
+                <div class="header-right">
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button type="button" class="btn btn-outline" onclick="previewCertificatePdf()"><i class="fas fa-file-pdf"></i> พรีวิว PDF</button>
+                        <button type="button" class="btn btn-primary" onclick="saveCertificateConfig()"><i class="fas fa-save"></i> บันทึกการตั้งค่า</button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-area animate-fade">
+                <!-- Select Survey Bar -->
+                <div class="card" style="margin-bottom: 20px; padding: 16px 20px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 280px;">
+                            <i class="fas fa-clipboard-list fa-lg" style="color: var(--primary);"></i>
+                            <div style="flex: 1;">
+                                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-light); display: block; margin-bottom: 4px;">เลือกแบบประเมินที่ต้องการเปิดออกเกียรติบัตร</label>
+                                <select class="form-control" id="surveySelector" onchange="onSurveyChange()" style="font-weight: 600; font-size: 0.95rem;">
+                                    <option value="">-- กำลังโหลดรายการแบบประเมิน... --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; background: #F8FAFC; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);">
+                            <label class="switch">
+                                <input type="checkbox" id="enableCertToggle" onchange="toggleCertEnabled()">
+                                <span class="slider"></span>
+                            </label>
+                            <div>
+                                <div style="font-weight: 600; font-size: 0.9rem;" id="enableCertLabel">เปิดใช้งานเกียรติบัตรสำหรับแบบประเมินนี้</div>
+                                <span style="font-size: 0.75rem; color: var(--text-light);">ผู้ประเมินจะได้รับปุ่มดาวน์โหลดเกียรติบัตรทันทีหลังส่งแบบประเมิน</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Designer Grid -->
+                <div class="cert-container">
+                    <!-- Left: Control Panel -->
+                    <div class="settings-panel">
+                        <!-- Background Settings -->
+                        <div class="settings-section">
+                            <div class="section-heading"><i class="fas fa-palette"></i> 1. รูปแบบและพื้นหลังเกียรติบัตร</div>
+                            <label class="form-label" style="font-size: 0.85rem;">เทมเพลตสไตล์พื้นหลัง</label>
+                            <div class="bg-presets-grid">
+                                <button type="button" class="bg-preset-btn active" data-preset="gold-luxury" onclick="selectBgPreset('gold-luxury')">
+                                    <span class="bg-preset-color-dot" style="background: #F59E0B;"></span> ทองหรูหรา
+                                </button>
+                                <button type="button" class="bg-preset-btn" data-preset="blue-modern" onclick="selectBgPreset('blue-modern')">
+                                    <span class="bg-preset-color-dot" style="background: #3B82F6;"></span> ฟ้าทางการ
+                                </button>
+                                <button type="button" class="bg-preset-btn" data-preset="emerald-green" onclick="selectBgPreset('emerald-green')">
+                                    <span class="bg-preset-color-dot" style="background: #10B981;"></span> เขียวมรกต
+                                </button>
+                                <button type="button" class="bg-preset-btn" data-preset="purple-regal" onclick="selectBgPreset('purple-regal')">
+                                    <span class="bg-preset-color-dot" style="background: #8B5CF6;"></span> ม่วงราชการ
+                                </button>
+                                <button type="button" class="bg-preset-btn" data-preset="minimal-white" onclick="selectBgPreset('minimal-white')">
+                                    <span class="bg-preset-color-dot" style="background: #334155;"></span> มินิมอลเรียบหรู
+                                </button>
+                                <button type="button" class="bg-preset-btn" data-preset="custom" onclick="selectBgPreset('custom')">
+                                    <i class="fas fa-image"></i> อัปโหลดภาพ
+                                </button>
+                            </div>
+
+                            <div id="customBgUploadBox" style="display:none; margin-top: 10px;">
+                                <label class="form-label" style="font-size: 0.85rem;">อัปโหลดรูปพื้นหลังของคุณเอง (A4 แนวนอน)</label>
+                                <input type="file" id="bgImageInput" accept="image/*" class="form-control" onchange="handleBgImageUpload(event)">
+                                <div class="form-hint">แนะนำขนาด 2480 × 1754 px (300 DPI) หรืออัตราส่วน 1.414:1</div>
+                            </div>
+                        </div>
+
+                        <!-- Logo & Branding -->
+                        <div class="settings-section">
+                            <div class="section-heading"><i class="fas fa-image"></i> 2. โลโก้หน่วยงาน / ตราสัญลักษณ์</div>
+                            <div class="form-group" style="margin-bottom: 10px;">
+                                <label class="form-label" style="font-size: 0.85rem;">อัปโหลดโลโก้ (PNG โปร่งใส)</label>
+                                <input type="file" id="logoImageInput" accept="image/*" class="form-control" onchange="handleLogoUpload(event)">
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <label style="font-size: 0.85rem; color: var(--text-light);">ขนาดโลโก้:</label>
+                                <input type="range" id="logoSizeRange" min="40" max="140" value="70" style="flex:1;" oninput="updateLogoSize(this.value)">
+                                <span id="logoSizeVal" style="font-size: 0.8rem; font-weight: 600;">70px</span>
+                            </div>
+                        </div>
+
+                        <!-- Text Elements Editor -->
+                        <div class="settings-section">
+                            <div class="section-heading"><i class="fas fa-font"></i> 3. ข้อความและขนาดตัวอักษรในเกียรติบัตร</div>
+                            <div class="form-hint" style="margin-bottom: 12px; background: #EEF2FF; color: #4338CA; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; line-height: 1.5;">
+                                <div><i class="fas fa-mouse"></i> <strong>ดับเบิลคลิก (Double-Click)</strong> ที่ข้อความบนเกียรติบัตร เพื่อพิมพ์แก้ไขได้ทันที (ตำแหน่งจะไม่เลื่อน)</div>
+                                <div style="margin-top: 4px;"><i class="fas fa-expand-arrows-alt"></i> <strong>คลิกที่องค์ประกอบ</strong> จะมีปุ่ม <strong>[+ ขยาย] [- ย่อ]</strong> และจุดจับมุมเพื่อปรับขนาดด้วยเมาส์</div>
+                            </div>
+                            
+                            <!-- Title Setting -->
+                            <div class="form-group" style="margin-bottom: 12px; background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                                <label class="form-label" style="font-size: 0.85rem; font-weight: 700; color: #1E293B;">หัวข้อเกียรติบัตร (Title)</label>
+                                <textarea class="form-control" id="inputTitle" rows="1" oninput="updateText('title', this.value)">เกียรติบัตร</textarea>
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
+                                    <span style="font-size: 0.78rem; color: var(--text-light);">ขนาดหัวข้อ:</span>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <button type="button" class="btn btn-sm btn-outline" style="padding: 1px 7px; font-size: 0.75rem;" onclick="stepFontSize('title', -2)">-</button>
+                                        <input type="range" id="sizeRange_title" min="16" max="72" value="34" style="width: 80px;" oninput="updateFontSize('title', this.value)">
+                                        <span id="sizeVal_title" style="font-size: 0.8rem; font-weight: 700; min-width: 36px; text-align: right;">34px</span>
+                                        <button type="button" class="btn btn-sm btn-outline" style="padding: 1px 7px; font-size: 0.75rem;" onclick="stepFontSize('title', 2)">+</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Subtitle Setting -->
+                            <div class="form-group" style="margin-bottom: 12px; background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                                <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">คำเกริ่นนำ (Subtitle)</label>
+                                <textarea class="form-control" id="inputSubtitle" rows="1" oninput="updateText('subtitle', this.value)">มอบให้ไว้เพื่อแสดงว่า</textarea>
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
+                                    <span style="font-size: 0.78rem; color: var(--text-light);">ขนาดคำเกริ่น:</span>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <button type="button" class="btn btn-sm btn-outline" style="padding: 1px 7px; font-size: 0.75rem;" onclick="stepFontSize('subtitle', -2)">-</button>
+                                        <input type="range" id="sizeRange_subtitle" min="12" max="40" value="17" style="width: 80px;" oninput="updateFontSize('subtitle', this.value)">
+                                        <span id="sizeVal_subtitle" style="font-size: 0.8rem; font-weight: 700; min-width: 36px; text-align: right;">17px</span>
+                                        <button type="button" class="btn btn-sm btn-outline" style="padding: 1px 7px; font-size: 0.75rem;" onclick="stepFontSize('subtitle', 2)">+</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Recipient Setting -->
+                            <div class="form-group" style="margin-bottom: 12px; background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                                <label class="form-label" style="font-size: 0.85rem; font-weight: 700; color: #4F46E5;">ชื่อผู้รับ (Recipient Tag)</label>
+                                <textarea class="form-control" id="inputRecipient" rows="1" oninput="updateText('recipient', this.value)">{name}</textarea>
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
+                                    <span style="font-size: 0.78rem; color: var(--text-light);">ขนาดชื่อผู้รับ:</span>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <button type="button" class="btn btn-sm btn-outline" style="padding: 1px 7px; font-size: 0.75rem;" onclick="stepFontSize('recipient', -2)">-</button>
+                                        <input type="range" id="sizeRange_recipient" min="16" max="64" value="28" style="width: 80px;" oninput="updateFontSize('recipient', this.value)">
+                                        <span id="sizeVal_recipient" style="font-size: 0.8rem; font-weight: 700; min-width: 36px; text-align: right;">28px</span>
+                                        <button type="button" class="btn btn-sm btn-outline" style="padding: 1px 7px; font-size: 0.75rem;" onclick="stepFontSize('recipient', 2)">+</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Body Setting -->
+                            <div class="form-group" style="margin-bottom: 12px; background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                                <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">ข้อความบรรยายการเข้าร่วม (Body)</label>
+                                <textarea class="form-control" id="inputBody" rows="4" oninput="updateText('body', this.value)">ได้ผ่านการตอบแบบประเมินความพึงพอใจและมีส่วนร่วมในการพัฒนาการให้บริการ ให้ไว้ ณ วันที่ {date} ขอให้มีความสุขความเจริญก้าวหน้ายิ่งขึ้นไป</textarea>
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
+                                    <span style="font-size: 0.78rem; color: var(--text-light);">ขนาดข้อความบรรยาย:</span>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <button type="button" class="btn btn-sm btn-outline" style="padding: 1px 7px; font-size: 0.75rem;" onclick="stepFontSize('body', -2)">-</button>
+                                        <input type="range" id="sizeRange_body" min="11" max="36" value="15" style="width: 80px;" oninput="updateFontSize('body', this.value)">
+                                        <span id="sizeVal_body" style="font-size: 0.8rem; font-weight: 700; min-width: 36px; text-align: right;">15px</span>
+                                        <button type="button" class="btn btn-sm btn-outline" style="padding: 1px 7px; font-size: 0.75rem;" onclick="stepFontSize('body', 2)">+</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Date Setting -->
+                            <div class="form-group" style="margin-bottom: 12px; background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                                <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">วันที่ออกเกียรติบัตร</label>
+                                <textarea class="form-control" id="inputDate" rows="1" oninput="updateText('date', this.value)">{date}</textarea>
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
+                                    <span style="font-size: 0.78rem; color: var(--text-light);">ขนาดวันที่:</span>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <button type="button" class="btn btn-sm btn-outline" style="padding: 1px 7px; font-size: 0.75rem;" onclick="stepFontSize('date', -2)">-</button>
+                                        <input type="range" id="sizeRange_date" min="10" max="32" value="14" style="width: 80px;" oninput="updateFontSize('date', this.value)">
+                                        <span id="sizeVal_date" style="font-size: 0.8rem; font-weight: 700; min-width: 36px; text-align: right;">14px</span>
+                                        <button type="button" class="btn btn-sm btn-outline" style="padding: 1px 7px; font-size: 0.75rem;" onclick="stepFontSize('date', 2)">+</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Signatures & Authority -->
+                        <div class="settings-section">
+                            <div class="section-heading"><i class="fas fa-signature"></i> 4. ผู้ลงนาม / รูปลายเซ็น (แยกขยายอิสระ)</div>
+                            <div class="form-group" style="margin-bottom: 10px; background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                                <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">ชื่อและตำแหน่งผู้มีอำนาจลงนาม</label>
+                                <textarea class="form-control" id="inputIssuerName" rows="1" style="margin-bottom: 6px;" oninput="updateText('issuerName', this.value)">ผู้ช่วยศาสตราจารย์ ดร.สมชาย ใจดี</textarea>
+                                <textarea class="form-control" id="inputIssuerTitle" rows="2" oninput="updateText('issuerTitle', this.value)">ผู้อำนวยการศูนย์บริการและพัฒนา</textarea>
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
+                                    <span style="font-size: 0.78rem; color: var(--text-light);">ขนาดชื่อผู้ลงนาม:</span>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <button type="button" class="btn btn-sm btn-outline" style="padding: 1px 7px; font-size: 0.75rem;" onclick="stepFontSize('issuer', -2)">-</button>
+                                        <input type="range" id="sizeRange_issuer" min="11" max="36" value="15" style="width: 80px;" oninput="updateFontSize('issuer', this.value)">
+                                        <span id="sizeVal_issuer" style="font-size: 0.8rem; font-weight: 700; min-width: 36px; text-align: right;">15px</span>
+                                        <button type="button" class="btn btn-sm btn-outline" style="padding: 1px 7px; font-size: 0.75rem;" onclick="stepFontSize('issuer', 2)">+</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group" style="margin-bottom: 10px; background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                                <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">รูปภาพลายเซ็น (PNG โปร่งใส)</label>
+                                <input type="file" id="signatureImageInput" accept="image/*" class="form-control" onchange="handleSignatureUpload(event)">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
+                                    <span style="font-size: 0.78rem; color: var(--text-light);">ขนาดลายเซ็น:</span>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <button type="button" class="btn btn-sm btn-outline" style="padding: 1px 7px; font-size: 0.75rem;" onclick="stepFontSize('signature', -5)">-</button>
+                                        <input type="range" id="signatureSizeRange" min="20" max="140" value="50" style="width: 80px;" oninput="updateSignatureSize(this.value)">
+                                        <span id="signatureSizeVal" style="font-size: 0.8rem; font-weight: 700; min-width: 36px; text-align: right;">50px</span>
+                                        <button type="button" class="btn btn-sm btn-outline" style="padding: 1px 7px; font-size: 0.75rem;" onclick="stepFontSize('signature', 5)">+</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reset Positions Button -->
+                        <button type="button" class="btn btn-outline" style="width: 100%; justify-content: center; font-size: 0.85rem;" onclick="resetElementPositions()">
+                            <i class="fas fa-undo"></i> รีเซ็ตตำแหน่งและขนาดเริ่มต้น (Reset Layout)
+                        </button>
+                    </div>
+
+                    <!-- Right: Visual Drag & Drop Stage -->
+                    <div class="stage-wrapper">
+                        <div class="stage-toolbar">
+                            <div style="font-size: 0.88rem; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <span><i class="fas fa-mouse text-primary"></i> <strong>ดับเบิลคลิก:</strong> พิมพ์แก้ไขข้อความ (ไม่เลื่อน)</span>
+                                <span>|</span>
+                                <span><i class="fas fa-expand-arrows-alt text-primary"></i> <strong>คลิกที่ข้อความ:</strong> จะมีปุ่ม ย่อ/ขยาย ขนาด</span>
+                                <span>|</span>
+                                <span><i class="fas fa-arrows-alt text-primary"></i> <strong>คลิกลาก:</strong> ย้ายตำแหน่ง</span>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="btn btn-sm btn-outline" style="color:white; border-color:rgba(255,255,255,0.4);" onclick="zoomStage(0.9)"><i class="fas fa-search-minus"></i></button>
+                                <button type="button" class="btn btn-sm btn-outline" style="color:white; border-color:rgba(255,255,255,0.4);" onclick="zoomStage(1.0)">100%</button>
+                                <button type="button" class="btn btn-sm btn-outline" style="color:white; border-color:rgba(255,255,255,0.4);" onclick="zoomStage(1.1)"><i class="fas fa-search-plus"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- The Certificate Canvas -->
+                        <div id="certSheet" class="cert-bg-gold-luxury" onclick="onCanvasClick(event)">
+                            <!-- Floating Action Toolbar for Selected Element -->
+                            <div id="elementFloatingBar" class="element-floating-bar" style="display:none;" onclick="event.stopPropagation()">
+                                <button type="button" class="float-btn" onclick="adjustSelectedSize(-2)" title="ย่อขนาด"><i class="fas fa-minus"></i> ย่อ</button>
+                                <span class="float-size-label" id="floatSizeLabel">28px</span>
+                                <button type="button" class="float-btn" onclick="adjustSelectedSize(2)" title="ขยายขนาด"><i class="fas fa-plus"></i> ขยาย</button>
+                                <button type="button" class="float-btn float-btn-edit" id="floatEditBtn" onclick="editSelectedElement()" title="พิมพ์แก้ไขข้อความ"><i class="fas fa-edit"></i> พิมพ์แก้ไข</button>
+                            </div>
+
+                            <!-- Logo Element -->
+                            <div class="cert-element el-logo" id="el_logo" data-key="logo" style="left: 50%; top: 14%;">
+                                <div id="logoWrapper" style="width: 70px; height: 70px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-award" style="font-size: 50px; color: #D97706;" id="logoFallbackIcon"></i>
+                                    <img src="" id="logoImg" style="display:none;" alt="Logo">
+                                </div>
+                                <div class="resize-handle handle-tl"></div>
+                                <div class="resize-handle handle-tr"></div>
+                                <div class="resize-handle handle-bl"></div>
+                                <div class="resize-handle handle-br"></div>
+                            </div>
+
+                            <!-- Title Element -->
+                            <div class="cert-element el-title" id="el_title" data-key="title" style="left: 50%; top: 26%; font-size: 34px; color: #1E293B;">
+                                <div class="el-text-inner" id="dispTitle">เกียรติบัตร</div>
+                                <div class="resize-handle handle-tl"></div>
+                                <div class="resize-handle handle-tr"></div>
+                                <div class="resize-handle handle-bl"></div>
+                                <div class="resize-handle handle-br"></div>
+                            </div>
+
+                            <!-- Subtitle Element -->
+                            <div class="cert-element el-subtitle" id="el_subtitle" data-key="subtitle" style="left: 50%; top: 35%; font-size: 17px; color: #64748B;">
+                                <div class="el-text-inner" id="dispSubtitle">มอบให้ไว้เพื่อแสดงว่า</div>
+                                <div class="resize-handle handle-tl"></div>
+                                <div class="resize-handle handle-tr"></div>
+                                <div class="resize-handle handle-bl"></div>
+                                <div class="resize-handle handle-br"></div>
+                            </div>
+
+                            <!-- Recipient Name Element -->
+                            <div class="cert-element el-recipient" id="el_recipient" data-key="recipient" style="left: 50%; top: 45%; font-size: 28px; color: #4F46E5; border-bottom: 2px solid #C7D2FE; padding-bottom: 4px; min-width: 280px;">
+                                <div class="el-text-inner" id="dispRecipient">นายสมศักดิ์ รักการเรียน</div>
+                                <div class="resize-handle handle-tl"></div>
+                                <div class="resize-handle handle-tr"></div>
+                                <div class="resize-handle handle-bl"></div>
+                                <div class="resize-handle handle-br"></div>
+                            </div>
+
+                            <!-- Body Text Element -->
+                            <div class="cert-element el-body" id="el_body" data-key="body" style="left: 50%; top: 58%; font-size: 15px; color: #334155; width: 620px;">
+                                <div class="el-text-inner" id="dispBody">ได้ผ่านการตอบแบบประเมินความพึงพอใจและมีส่วนร่วมในการพัฒนาการให้บริการ ให้ไว้ ณ วันที่ {date} ขอให้มีความสุขความเจริญก้าวหน้ายิ่งขึ้นไป</div>
+                                <div class="resize-handle handle-tl"></div>
+                                <div class="resize-handle handle-tr"></div>
+                                <div class="resize-handle handle-bl"></div>
+                                <div class="resize-handle handle-br"></div>
+                            </div>
+
+                            <!-- Date Element -->
+                            <div class="cert-element el-date" id="el_date" data-key="date" style="left: 50%; top: 70%; font-size: 14px; color: #64748B;">
+                                <div class="el-text-inner" id="dispDate">ให้ไว้ ณ วันที่ 17 สิงหาคม พ.ศ. 2569</div>
+                                <div class="resize-handle handle-tl"></div>
+                                <div class="resize-handle handle-tr"></div>
+                                <div class="resize-handle handle-bl"></div>
+                                <div class="resize-handle handle-br"></div>
+                            </div>
+
+                            <!-- Signature Element (Separated) -->
+                            <div class="cert-element el-signature" id="el_signature" data-key="signature" style="left: 50%; top: 79%;">
+                                <div id="signatureImgBox" style="display:none; height: 50px;">
+                                    <img src="" id="signatureImg" style="height: 100%; object-fit: contain;" alt="Signature">
+                                </div>
+                                <div id="signatureFallbackBox" style="display:flex; align-items:center; justify-content:center; border: 1.5px dashed #CBD5E1; border-radius: 6px; padding: 4px 12px; color: #94A3B8; font-size: 13px; min-height: 38px;">
+                                    <i class="fas fa-signature" style="margin-right: 6px;"></i> (รูปลายเซ็นผู้ลงนาม)
+                                </div>
+                                <div class="resize-handle handle-tl"></div>
+                                <div class="resize-handle handle-tr"></div>
+                                <div class="resize-handle handle-bl"></div>
+                                <div class="resize-handle handle-br"></div>
+                            </div>
+
+                            <!-- Issuer / Authority Element (Separated) -->
+                            <div class="cert-element el-issuer" id="el_issuer" data-key="issuer" style="left: 50%; top: 89%; font-size: 15px;">
+                                <div class="el-text-inner el-issuer-name" id="dispIssuerName" style="color: #1E293B;">ผู้ช่วยศาสตราจารย์ ดร.สมชาย ใจดี</div>
+                                <div class="el-text-inner el-issuer-title" id="dispIssuerTitle" style="margin-top: 2px;">ผู้อำนวยการศูนย์บริการและพัฒนา</div>
+                                <div class="resize-handle handle-tl"></div>
+                                <div class="resize-handle handle-tr"></div>
+                                <div class="resize-handle handle-bl"></div>
+                                <div class="resize-handle handle-br"></div>
+                            </div>
+
+                            <!-- Live Tooltip for Resize -->
+                            <div id="resizeTooltip" class="resize-tooltip">ขนาด: 24px</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Scripts: html2canvas & jsPDF for 100% Full-bleed A4 PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/certificates.js?v=3.0"></script>
+</body>
+</html>

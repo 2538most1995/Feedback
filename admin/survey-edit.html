@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สร้าง/แก้ไข แบบประเมิน - ระบบประเมินความพึงพอใจ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <style>
+        .edit-header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .section-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            transition: border-color 0.2s;
+        }
+        .section-card:hover {
+            border-color: #CBD5E1;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border);
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .section-title-input {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text);
+            flex: 1;
+            min-width: 200px;
+        }
+        .question-card {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 14px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            transition: all 0.2s;
+        }
+        .question-card:hover {
+            background: #FFFFFF;
+            border-color: #CBD5E1;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+        .question-num {
+            font-weight: 600;
+            color: var(--primary);
+            min-width: 26px;
+            height: 26px;
+            background: #EEF2FF;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            margin-top: 6px;
+        }
+        .question-content { 
+            flex: 1; 
+        }
+        .question-actions { 
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .question-row { 
+            display: flex; 
+            gap: 12px; 
+            margin-bottom: 12px; 
+            flex-wrap: wrap;
+        }
+        .question-input {
+            flex: 1;
+            min-width: 240px;
+            font-weight: 500;
+        }
+        .question-type-select {
+            width: 190px;
+        }
+        .options-container {
+            margin-top: 12px;
+            padding: 12px 16px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px dashed #CBD5E1;
+        }
+        .option-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .option-bullet {
+            color: var(--text-light);
+            font-size: 0.8rem;
+        }
+        .rating-preview-box {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: var(--text-light);
+            background: #F1F5F9;
+            padding: 8px 12px;
+            border-radius: 6px;
+        }
+        .rating-preview-badge {
+            background: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid #E2E8F0;
+            font-weight: 500;
+        }
+        .section-action-btns {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        #qrCodeContainer canvas, #qrCodeContainer img {
+            margin: 0 auto;
+            display: block;
+        }
+
+        /* Import Modal Tabs & Dropzone */
+        .tab-btn {
+            padding: 10px 16px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-light);
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .drop-zone {
+            border: 2px dashed #CBD5E1;
+            border-radius: 12px;
+            padding: 28px 20px;
+            text-align: center;
+            background: #F8FAFC;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--primary);
+            background: #EEF2FF;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <i class="fas fa-clipboard-check"></i>
+                <span>FeedbackAdmin</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item">
+                    <i class="fas fa-home"></i> หน้าหลัก
+                </a>
+                <a href="surveys.html" class="nav-item active">
+                    <i class="fas fa-clipboard-list"></i> แบบประเมิน
+                </a>
+                <a href="stats.html" class="nav-item">
+                    <i class="fas fa-chart-bar"></i> รายงานผล
+                </a>
+                <a href="responses.html" class="nav-item">
+                    <i class="fas fa-users"></i> ผู้ตอบแบบประเมิน
+                </a>
+                <a href="certificates.html" class="nav-item">
+                    <i class="fas fa-award"></i> ออกเกียรติบัตร
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-cog"></i> ตั้งค่า
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-avatar">AD</div>
+                <div class="user-info">
+                    <div class="user-name">แอดมิน ระบบ</div>
+                    <div class="user-role">ผู้ดูแลระบบ</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="mobile-toggle" id="mobileToggle"><i class="fas fa-bars"></i></button>
+                    <a href="surveys.html" class="btn btn-outline" style="padding: 6px 12px; margin-right: 8px;" title="กลับหน้ารายการ">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <h1 class="page-title" id="pageTitle">สร้างแบบประเมินใหม่</h1>
+                </div>
+                <div class="header-right">
+                    <div class="edit-header-actions">
+                        <button type="button" class="btn btn-outline" onclick="openImportModalInEditor()">
+                            <i class="fas fa-file-import"></i> นำเข้า (Excel/JSON)
+                        </button>
+                        <button type="button" class="btn btn-outline" id="qrBtn" onclick="openQrModalForCurrentSurvey()" style="display:none;">
+                            <i class="fas fa-qrcode"></i> QR Code
+                        </button>
+                        <button type="button" class="btn btn-outline" id="previewBtn" onclick="previewCurrentSurvey()">
+                            <i class="fas fa-eye"></i> ดูตัวอย่าง
+                        </button>
+                        <button type="button" class="btn btn-outline" id="saveDraftBtn" onclick="saveSurvey('draft')">
+                            <i class="fas fa-save"></i> บันทึกแบบร่าง
+                        </button>
+                        <button type="button" class="btn btn-primary" id="savePublishBtn" onclick="saveSurvey('published')">
+                            <i class="fas fa-check-circle"></i> บันทึกและเผยแพร่
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-area animate-fade">
+                <!-- Basic Info Card -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="form-group">
+                        <label class="form-label" style="font-weight: 600;">ชื่อแบบประเมิน <span style="color:var(--error);">*</span></label>
+                        <input type="text" class="form-control" id="surveyTitle" placeholder="เช่น แบบประเมินความพึงพอใจการให้บริการ ประจำปี 2567" style="font-size: 1.15rem; font-weight: 600;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">คำอธิบายหรือคำชี้แจง</label>
+                        <textarea class="form-control" id="surveyDesc" rows="3" placeholder="ระบุวัตถุประสงค์และคำชี้แจงสำหรับผู้ตอบแบบประเมิน"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            <label class="form-label">หมวดหมู่</label>
+                            <input type="text" class="form-control" id="surveyCategory" placeholder="เช่น บริการทั่วไป, ฝึกอบรม, อาคารสถานที่" list="categoryPresets" value="บริการทั่วไป">
+                            <datalist id="categoryPresets">
+                                <option value="บริการทั่วไป">
+                                <option value="การฝึกอบรมและสัมมนา">
+                                <option value="อาคารและสถานที่">
+                                <option value="สิ่งอำนวยความสะดวก">
+                                <option value="เทคโนโลยีสารสนเทศ">
+                                <option value="การศึกษาและการเรียนรู้">
+                            </datalist>
+                        </div>
+                        <div class="form-group" style="width: 200px;">
+                            <label class="form-label">สถานะ</label>
+                            <select class="form-control" id="surveyStatus">
+                                <option value="draft">ร่าง (Draft)</option>
+                                <option value="published">เผยแพร่ (Published)</option>
+                                <option value="closed">ปิดรับการประเมิน (Closed)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sections Container -->
+                <div id="sectionsContainer">
+                    <!-- Sections will be rendered here by JS -->
+                </div>
+
+                <!-- Add Section Button -->
+                <button type="button" class="btn btn-outline" style="width: 100%; justify-content: center; border-style: dashed; padding: 18px; font-weight: 600; font-size: 1rem; border-width: 2px; margin-bottom: 40px; background: white;" onclick="addSection()">
+                    <i class="fas fa-plus-circle fa-lg" style="color: var(--primary);"></i> เพิ่มส่วนประเมินใหม่ (Add Section)
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Import Survey Modal -->
+    <div class="modal-backdrop" id="importModal">
+        <div class="modal-content" style="max-width: 680px;">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-file-import" style="color:var(--primary); margin-right:8px;"></i> นำเข้าแบบประเมิน (Excel / JSON)</h3>
+                <button class="modal-close" onclick="closeModal('importModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <!-- Tab Selector -->
+                <div style="display: flex; gap: 8px; border-bottom: 2px solid #E2E8F0; margin-bottom: 20px;">
+                    <button type="button" class="tab-btn active" id="tabBtnExcel" onclick="switchImportTab('excel')">
+                        <i class="fas fa-file-excel" style="color: #10B981; margin-right: 6px;"></i> นำเข้าจาก Excel (.xlsx / .csv)
+                    </button>
+                    <button type="button" class="tab-btn" id="tabBtnJson" onclick="switchImportTab('json')">
+                        <i class="fas fa-file-code" style="color: #6366F1; margin-right: 6px;"></i> นำเข้าจาก JSON (.json)
+                    </button>
+                </div>
+
+                <!-- Tab Content: Excel -->
+                <div id="tabContentExcel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: #F0FDF4; border: 1px solid #BBF7D0; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <strong style="color: #166534; font-size: 0.9rem;"><i class="fas fa-file-excel"></i> ต้องการเทมเพลตตัวอย่าง Excel?</strong>
+                            <p style="color: #15803D; font-size: 0.8rem; margin-top: 2px;">ดาวน์โหลดไฟล์เทมเพลตเพื่อกรอกข้อคำถามตามโครงสร้างที่ถูกต้อง</p>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline" style="border-color: #16A34A; color: #16A34A; background: white; white-space: nowrap;" onclick="downloadExcelTemplate()">
+                            <i class="fas fa-download"></i> ดาวน์โหลด Template (.xlsx)
+                        </button>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" style="font-weight: 600;">เลือกไฟล์ Excel</label>
+                        <div class="drop-zone" id="excelDropZone" onclick="document.getElementById('excelFileInput').click()">
+                            <i class="fas fa-file-excel" style="font-size: 2.5rem; color: #10B981; margin-bottom: 8px;"></i>
+                            <p style="font-weight: 600; color: var(--text); margin-bottom: 4px;" id="excelFileName">คลิกเลือกไฟล์ หรือลากไฟล์มาวางที่นี่</p>
+                            <span style="font-size: 0.8rem; color: var(--text-light);">รองรับ .xlsx, .xls, .csv</span>
+                            <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" style="display:none;" onchange="handleExcelFileSelect(event)">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: JSON -->
+                <div id="tabContentJson" style="display:none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: #EEF2FF; border: 1px solid #C7D2FE; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <strong style="color: #3730A3; font-size: 0.9rem;"><i class="fas fa-file-code"></i> ต้องการเทมเพลตตัวอย่าง JSON?</strong>
+                            <p style="color: #4338CA; font-size: 0.8rem; margin-top: 2px;">ดาวน์โหลดโครงสร้าง JSON มาตรฐานสำหรับแบบประเมิน</p>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline" style="border-color: #4F46E5; color: #4F46E5; background: white; white-space: nowrap;" onclick="downloadJsonTemplate()">
+                            <i class="fas fa-download"></i> ดาวน์โหลด Template (.json)
+                        </button>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label class="form-label" style="font-weight: 600;">อัปโหลดไฟล์ JSON</label>
+                        <input type="file" id="jsonFileInput" class="form-control" accept=".json" onchange="handleJsonFileSelect(event)">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" style="font-weight: 600;">หรือวางโค้ด JSON</label>
+                        <textarea class="form-control" id="jsonTextInput" rows="6" placeholder='{ "title": "แบบประเมิน...", "sections": [...] }' style="font-family: monospace; font-size: 0.82rem;" oninput="handleJsonTextChange()"></textarea>
+                    </div>
+                </div>
+
+                <!-- Parsed Preview Box -->
+                <div id="importPreviewBox" style="display:none; margin-top: 16px; background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 10px; padding: 14px 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-weight: 700; color: var(--primary-dark); font-size: 1rem;" id="previewSurveyTitle">-</span>
+                        <span style="background: #E0E7FF; color: #4338CA; font-size: 0.75rem; padding: 2px 10px; border-radius: 999px; font-weight: 600;" id="previewSurveyCategory">-</span>
+                    </div>
+                    <div style="font-size: 0.85rem; color: #475569; margin-bottom: 8px;" id="previewSurveyStats">-</div>
+                    <div id="previewQuestionsList" style="max-height: 140px; overflow-y: auto; font-size: 0.82rem; border-top: 1px dashed #CBD5E1; padding-top: 8px;">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('importModal')">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" id="confirmImportInEditorBtn" disabled onclick="applyImportToEditor()">
+                    <i class="fas fa-check-circle"></i> นำเข้าสู่ตัวสร้างฟอร์ม
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div class="modal-backdrop" id="qrModal">
+        <div class="modal-content" style="max-width: 460px; text-align: center;">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-qrcode" style="color:var(--primary); margin-right:8px;"></i> QR Code แบบประเมิน</h3>
+                <button class="modal-close" onclick="closeModal('qrModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 24px 20px;">
+                <div style="font-weight: 700; font-size: 1.1rem; color: var(--text); margin-bottom: 8px;" id="qrSurveyTitle">-</div>
+                <div style="font-size: 0.82rem; color: #059669; margin-bottom: 18px; background: #ECFDF5; padding: 6px 14px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; border: 1px solid #A7F3D0;">
+                    <i class="fas fa-infinity"></i> ลิงก์ถาวร ไม่มีวันหมดอายุ ใช้ได้ตลอดไป
+                </div>
+                
+                <!-- QR Code Box -->
+                <div style="display: flex; justify-content: center; align-items: center; margin: 10px auto; padding: 18px; background: white; border-radius: 14px; border: 2px solid #E2E8F0; width: fit-content; box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
+                    <div id="qrCodeContainer"></div>
+                </div>
+
+                <p style="font-size: 0.85rem; color: var(--text-light); margin-top: 12px;">สแกนเพื่อเปิดทำแบบประเมินได้ทันที</p>
+                <div style="margin-top: 12px; background: #F8FAFC; padding: 10px 14px; border-radius: 8px; border: 1px solid #E2E8F0; font-size: 0.82rem; color: #475569; word-break: break-all; font-family: monospace;" id="qrSurveyUrl">
+                    -
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: center; gap: 10px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-outline" onclick="copyQrLink()"><i class="fas fa-link"></i> คัดลอกลิงก์</button>
+                <button type="button" class="btn btn-primary" onclick="downloadQrCode()"><i class="fas fa-download"></i> ดาวน์โหลดภาพ QR Code</button>
+                <button type="button" class="btn btn-outline" onclick="printQrCode()"><i class="fas fa-print"></i> พิมพ์ใบตั้งโต๊ะ</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/survey-manager.js"></script>
+</body>
+</html>

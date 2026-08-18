@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ผู้ตอบแบบประเมิน - ระบบประเมินความพึงพอใจ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <style>
+        .filter-bar {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .search-box {
+            position: relative;
+            max-width: 300px;
+            width: 100%;
+        }
+        .search-box i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+        }
+        .search-box input {
+            padding-left: 36px;
+            width: 100%;
+        }
+        .response-detail-section {
+            background: #F8FAFC;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+            border: 1px solid #E2E8F0;
+        }
+        .response-detail-title {
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+            border-bottom: 1px solid #E2E8F0;
+            padding-bottom: 6px;
+        }
+        .answer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 8px 0;
+            border-bottom: 1px dashed #E2E8F0;
+            gap: 12px;
+        }
+        .answer-row:last-child {
+            border-bottom: none;
+        }
+        .answer-question {
+            font-weight: 500;
+            color: var(--text);
+            font-size: 0.9rem;
+            flex: 1;
+        }
+        .answer-value {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.9rem;
+            text-align: right;
+            max-width: 250px;
+        }
+        .empty-state-box {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-light);
+        }
+        .empty-state-box i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #CBD5E1;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <i class="fas fa-clipboard-check"></i>
+                <span>FeedbackAdmin</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item">
+                    <i class="fas fa-home"></i> หน้าหลัก
+                </a>
+                <a href="surveys.html" class="nav-item">
+                    <i class="fas fa-clipboard-list"></i> แบบประเมิน
+                </a>
+                <a href="stats.html" class="nav-item">
+                    <i class="fas fa-chart-bar"></i> รายงานผล
+                </a>
+                <a href="responses.html" class="nav-item active">
+                    <i class="fas fa-users"></i> ผู้ตอบแบบประเมิน
+                </a>
+                <a href="certificates.html" class="nav-item">
+                    <i class="fas fa-award"></i> ออกเกียรติบัตร
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-cog"></i> ตั้งค่า
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-avatar">AD</div>
+                <div class="user-info">
+                    <div class="user-name">แอดมิน ระบบ</div>
+                    <div class="user-role">ผู้ดูแลระบบ</div>
+                </div>
+                <button class="logout-btn" onclick="logout()" title="ออกจากระบบ">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="mobile-toggle" id="mobileToggle"><i class="fas fa-bars"></i></button>
+                    <h1 class="page-title">ข้อมูลผู้ตอบแบบประเมิน</h1>
+                </div>
+                <div class="header-right">
+                    <div class="date-display" id="currentDate">--</div>
+                </div>
+            </header>
+
+            <div class="content-area animate-fade">
+                <div class="card">
+                    <div class="filter-bar">
+                        <div style="flex: 1; min-width: 250px;">
+                            <select class="form-control" id="surveyFilter" onchange="onSurveyFilterChange()">
+                                <option value="">-- แสดงทุกแบบประเมิน --</option>
+                            </select>
+                        </div>
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchKeyword" class="form-control" placeholder="ค้นหาบทบาท, เพศ, ข้อความ..." oninput="filterResponsesTable()">
+                        </div>
+                        <button class="btn btn-outline" onclick="loadResponses()" title="รีเฟรช">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px; text-align:center;">ลำดับ</th>
+                                    <th>แบบประเมิน</th>
+                                    <th>เพศ</th>
+                                    <th>อายุ</th>
+                                    <th>บทบาท / ผู้ตอบ</th>
+                                    <th style="text-align:center;">คะแนนเฉลี่ย</th>
+                                    <th>วันที่ตอบ</th>
+                                    <th style="text-align:center; width: 100px;">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="responsesTableBody">
+                                <tr>
+                                    <td colspan="8" style="text-align:center; padding: 2rem; color: var(--text-light);">
+                                        <i class="fas fa-spinner fa-spin fa-2x" style="color:var(--primary); margin-bottom:0.5rem; display:block;"></i>
+                                        กำลังโหลดข้อมูลคำตอบ...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal-backdrop" id="detailModal">
+        <div class="modal-content" style="max-width: 650px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-clipboard-user" style="color:var(--primary); margin-right:8px;"></i> รายละเอียดคำตอบแบบประเมิน</h3>
+                <button class="modal-close" onclick="closeModal('detailModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="detailModalBody">
+                <!-- Injected via JS -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('detailModal')">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/admin.js"></script>
+    <script>
+        let allResponses = [];
+        let surveysList = [];
+        let selectedSurveyId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const sId = urlParams.get('id');
+            if (sId) {
+                selectedSurveyId = parseInt(sId);
+            }
+
+            loadSurveysDropdown();
+            loadResponses();
+        });
+
+        async function loadSurveysDropdown() {
+            const selector = document.getElementById('surveyFilter');
+            try {
+                const res = await api('../api/surveys.php');
+                if (res && res.success && res.data) {
+                    surveysList = res.data;
+                    selector.innerHTML = '<option value="">-- แสดงทุกแบบประเมิน --</option>';
+                    surveysList.forEach(s => {
+                        const isSel = selectedSurveyId == s.id ? 'selected' : '';
+                        selector.innerHTML += `<option value="${s.id}" ${isSel}>${s.title} (${s.response_count || 0} คำตอบ)</option>`;
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadResponses() {
+            const tbody = document.getElementById('responsesTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" style="text-align:center; padding: 2rem; color: var(--text-light);">
+                        <i class="fas fa-spinner fa-spin fa-2x" style="color:var(--primary); margin-bottom:0.5rem; display:block;"></i>
+                        กำลังโหลดข้อมูลคำตอบ...
+                    </td>
+                </tr>`;
+
+            try {
+                const endpoint = selectedSurveyId ? `../api/responses.php?survey_id=${selectedSurveyId}` : `../api/responses.php`;
+                const res = await api(endpoint);
+                if (res && res.success) {
+                    allResponses = res.data || [];
+                    filterResponsesTable();
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="8" class="empty-state-box"><p>ไม่สามารถโหลดข้อมูลผู้ตอบได้</p></td></tr>`;
+                }
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = `<tr><td colspan="8" class="empty-state-box"><p>เกิดข้อผิดพลาดในการโหลดข้อมูล</p></td></tr>`;
+            }
+        }
+
+        function onSurveyFilterChange() {
+            const selector = document.getElementById('surveyFilter');
+            selectedSurveyId = selector.value ? parseInt(selector.value) : null;
+            loadResponses();
+        }
+
+        function filterResponsesTable() {
+            const keyword = (document.getElementById('searchKeyword').value || '').toLowerCase().trim();
+            const filtered = allResponses.filter(r => {
+                if (!keyword) return true;
+                return (r.survey_title && r.survey_title.toLowerCase().includes(keyword)) ||
+                       (r.gender && r.gender.toLowerCase().includes(keyword)) ||
+                       (r.age_range && r.age_range.toLowerCase().includes(keyword)) ||
+                       (r.role && r.role.toLowerCase().includes(keyword)) ||
+                       (r.respondent_name && r.respondent_name.toLowerCase().includes(keyword));
+            });
+
+            renderTable(filtered);
+        }
+
+        function renderTable(list) {
+            const tbody = document.getElementById('responsesTableBody');
+            if (!list || list.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state-box">
+                                <i class="fas fa-inbox"></i>
+                                <h3>ยังไม่มีข้อมูลผู้ตอบแบบประเมิน</h3>
+                                <p>เมื่อมีผู้ทำแบบประเมิน ข้อมูลคำตอบจะปรากฏที่นี่</p>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            tbody.innerHTML = list.map((r, idx) => {
+                const avg = r.avg_rating !== null && r.avg_rating !== undefined ? Number(r.avg_rating).toFixed(1) : '-';
+                return `
+                    <tr>
+                        <td style="text-align:center; font-weight:600; color:var(--text-light);">${idx + 1}</td>
+                        <td style="font-weight:500;">${escapeHtml(r.survey_title || 'แบบประเมิน')}</td>
+                        <td>${escapeHtml(r.gender || '-')}</td>
+                        <td>${escapeHtml(r.age_range || '-')}</td>
+                        <td>
+                            <span style="background:#F1F5F9; color:#334155; padding:3px 8px; border-radius:6px; font-size:0.85rem; font-weight:500;">
+                                ${escapeHtml(r.role || r.respondent_name || 'ทั่วไป')}
+                            </span>
+                        </td>
+                        <td style="text-align:center;">
+                            ${avg !== '-' ? `
+                                <span style="color:#D97706; font-weight:600;"><i class="fas fa-star" style="font-size:0.8rem;"></i> ${avg}</span>
+                            ` : `<span style="color:var(--text-light);">-</span>`}
+                        </td>
+                        <td style="font-size:0.85rem; color:var(--text-light);">${formatThaiDateTime(r.submitted_at)}</td>
+                        <td style="text-align:center;">
+                            <div style="display:inline-flex; gap:4px;">
+                                <button class="btn-icon" title="ดูรายละเอียดคำตอบ" onclick="viewDetail(${r.id})">
+                                    <i class="fas fa-eye" style="color:var(--primary);"></i>
+                                </button>
+                                <button class="btn-icon text-error" title="ลบคำตอบนี้" onclick="deleteResponse(${r.id})">
+                                    <i class="fas fa-trash-alt" style="color:var(--error);"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function viewDetail(id) {
+            const body = document.getElementById('detailModalBody');
+            body.innerHTML = `
+                <div style="text-align:center; padding:2rem;">
+                    <i class="fas fa-spinner fa-spin fa-2x" style="color:var(--primary);"></i>
+                    <p style="margin-top:0.5rem; color:var(--text-light);">กำลังโหลดรายละเอียด...</p>
+                </div>`;
+            document.getElementById('detailModal').classList.add('active');
+
+            try {
+                const res = await api(`../api/responses.php?id=${id}`);
+                if (!res || !res.success || !res.data) {
+                    body.innerHTML = '<p style="color:var(--error); text-align:center;">ไม่สามารถโหลดรายละเอียดคำตอบได้</p>';
+                    return;
+                }
+
+                const r = res.data;
+                const answers = r.answers || [];
+
+                let answersHtml = '';
+                let currentSection = '';
+
+                answers.forEach(a => {
+                    const sec = a.section_title || 'คำถามทั่วไป';
+                    if (sec !== currentSection) {
+                        if (currentSection !== '') answersHtml += '</div>';
+                        answersHtml += `
+                            <div class="response-detail-section">
+                                <div class="response-detail-title">${escapeHtml(sec)}</div>
+                        `;
+                        currentSection = sec;
+                    }
+
+                    let valDisplay = '';
+                    if (a.rating_value !== null) {
+                        valDisplay = `<span style="color:#D97706; font-weight:bold;"><i class="fas fa-star"></i> ${a.rating_value} / 5</span>`;
+                    } else {
+                        valDisplay = `<span>${escapeHtml(a.text_value || '-')}</span>`;
+                    }
+
+                    answersHtml += `
+                        <div class="answer-row">
+                            <div class="answer-question">${escapeHtml(a.question_text || 'ข้อคำถาม')}</div>
+                            <div class="answer-value">${valDisplay}</div>
+                        </div>
+                    `;
+                });
+
+                if (currentSection !== '') answersHtml += '</div>';
+
+                body.innerHTML = `
+                    <div style="background:#EEF2FF; border-radius:8px; padding:12px 16px; margin-bottom:16px;">
+                        <h4 style="color:var(--primary-dark); margin-bottom:6px;">${escapeHtml(r.survey_title || 'แบบประเมิน')}</h4>
+                        <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:0.875rem; color:#475569;">
+                            <span><strong>เพศ:</strong> ${escapeHtml(r.gender || '-')}</span>
+                            <span><strong>อายุ:</strong> ${escapeHtml(r.age_range || '-')}</span>
+                            <span><strong>บทบาท:</strong> ${escapeHtml(r.role || '-')}</span>
+                            <span><strong>วันที่ตอบ:</strong> ${formatThaiDateTime(r.submitted_at)}</span>
+                        </div>
+                    </div>
+                    ${answersHtml || '<p style="color:var(--text-light); text-align:center;">ไม่มีคำตอบที่บันทึกไว้</p>'}
+                `;
+            } catch (err) {
+                console.error(err);
+                body.innerHTML = '<p style="color:var(--error); text-align:center;">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
+            }
+        }
+
+        async function deleteResponse(id) {
+            if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบคำตอบนี้? ข้อมูลจะไม่สามารถกู้คืนได้')) {
+                return;
+            }
+
+            try {
+                const res = await api(`../api/responses.php?id=${id}`, 'DELETE');
+                if (res && res.success) {
+                    showToast('ลบคำตอบเรียบร้อยแล้ว', 'success');
+                    allResponses = allResponses.filter(r => r.id != id);
+                    filterResponsesTable();
+                } else {
+                    showToast(res ? res.message : 'ไม่สามารถลบคำตอบได้', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('เกิดข้อผิดพลาดในการลบ', 'error');
+            }
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>

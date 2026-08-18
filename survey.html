@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แบบประเมินความพึงพอใจ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;600;700&family=Charm:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/survey.css">
+    <style>
+        .preview-banner {
+            background: linear-gradient(135deg, #4F46E5, #7C3AED);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+            font-size: 0.9rem;
+        }
+        .preview-banner a {
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .preview-banner a:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .checkbox-label:hover {
+            background: #EEF2FF;
+            border-color: #C7D2FE;
+        }
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+        .radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .radio-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+        .radio-label:hover {
+            background: #EEF2FF;
+            border-color: #C7D2FE;
+        }
+        .radio-label input[type="radio"] {
+            accent-color: var(--primary);
+        }
+        .required-badge {
+            color: #EF4444;
+            margin-left: 4px;
+            font-weight: bold;
+        }
+        .survey-card-desc {
+            white-space: pre-line;
+            line-height: 1.6;
+        }
+
+        /* Certificate Modal / Sheet for Respondent */
+        #userCertSheet {
+            width: 840px;
+            height: 594px;
+            position: relative;
+            background-color: #FFFFFF;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            user-select: none;
+            margin: 0 auto;
+        }
+        .cert-bg-gold-luxury {
+            background: radial-gradient(circle at center, #FFFFFF 0%, #FFFDF5 60%, #FEF9C3 100%);
+            border: 18px double #D97706;
+            outline: 2px solid #B45309;
+            outline-offset: -10px;
+        }
+        .cert-bg-blue-modern {
+            background: linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 50%, #E0E7FF 100%);
+            border: 16px solid #3B82F6;
+            outline: 2px dashed #1D4ED8;
+            outline-offset: -8px;
+        }
+        .cert-bg-emerald-green {
+            background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 60%, #BBF7D0 100%);
+            border: 18px double #059669;
+            outline: 2px solid #047857;
+            outline-offset: -10px;
+        }
+        .cert-bg-purple-regal {
+            background: linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 60%, #E9D5FF 100%);
+            border: 18px double #7C3AED;
+            outline: 2px solid #6D28D9;
+            outline-offset: -10px;
+        }
+        .cert-bg-minimal-white {
+            background: #FFFFFF;
+            border: 8px solid #1E293B;
+            outline: 1px solid #94A3B8;
+            outline-offset: -4px;
+        }
+        .user-cert-element {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-2">
+        <!-- Preview Banner (hidden by default) -->
+        <div id="previewBanner" class="preview-banner hidden">
+            <div>
+                <i class="fas fa-eye" style="margin-right: 8px;"></i>
+                <strong>โหมดดูตัวอย่างแบบประเมิน (Preview Mode)</strong>
+            </div>
+            <a href="admin/surveys.html"><i class="fas fa-arrow-left"></i> กลับหลังบ้านแอดมิน</a>
+        </div>
+
+        <header class="survey-header">
+            <a href="index.html" class="back-btn" title="กลับหน้าหลัก"><i class="fas fa-arrow-left"></i></a>
+            <div class="survey-title">
+                <h1>ระบบประเมินความพึงพอใจ</h1>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">กรุณาให้ข้อมูลตามความเป็นจริง เพื่อการพัฒนาต่อไป</p>
+            </div>
+            <div class="logo-area" style="font-size: 2rem; color: var(--primary);">
+                <i class="fas fa-clipboard-check"></i>
+            </div>
+        </header>
+
+        <main>
+            <div id="loading" class="spinner"></div>
+            
+            <div id="surveyContainer" class="hidden">
+                <div class="survey-info">
+                    <span id="surveyCategory" style="background: #EEF2FF; color: var(--primary); padding: 4px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; display: inline-block; margin-bottom: 8px;">ทั่วไป</span>
+                    <h2 id="surveyTitle" style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 6px;">กำลังโหลด...</h2>
+                    <p id="surveyDesc" class="survey-card-desc" style="color: var(--text-secondary); margin-top: 0.5rem;"></p>
+                </div>
+
+                <form id="surveyForm">
+                    <!-- Dynamic sections will be injected here -->
+                    <div id="formContent"></div>
+                    
+                    <div style="text-align: center; margin-top: 2rem; margin-bottom: 3rem;">
+                        <button type="submit" class="btn btn-primary btn-submit" style="padding: 14px 36px; font-size: 1.1rem; border-radius: 12px;">
+                            <i class="fas fa-paper-plane"></i> ส่งแบบประเมิน
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Thank you overlay -->
+            <div id="thankYou" class="thank-you-overlay hidden">
+                <i class="fas fa-check-circle icon-success"></i>
+                <h2>ขอบคุณสำหรับข้อมูลและการประเมิน</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">ความคิดเห็นของท่านมีคุณค่ายิ่ง และจะนำไปใช้เพื่อพัฒนาการให้บริการให้ดียิ่งขึ้น</p>
+                
+                <!-- Certificate Download Box (Visible if enabled) -->
+                <div id="certAwardBox" style="display:none; background: #F0FDF4; border: 2px dashed #86EFAC; border-radius: 16px; padding: 24px 20px; margin-bottom: 2rem; max-width: 520px; width: 100%; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.1);">
+                    <div style="font-size: 2.5rem; color: #16A34A; margin-bottom: 8px;"><i class="fas fa-award"></i></div>
+                    <h3 style="font-size: 1.25rem; color: #166534; margin-bottom: 4px; font-weight: 700;">ขอแสดงความยินดี! คุณได้รับสิทธิ์รับเกียรติบัตร</h3>
+                    <p style="font-size: 0.88rem; color: #15803D; margin-bottom: 18px;">กรุณาระบุชื่อ-นามสกุล ที่ต้องการให้พิมพ์บนเกียรติบัตร</p>
+                    
+                    <form id="certNameForm" onsubmit="return false;" style="margin-bottom: 8px;">
+                        <div style="margin-bottom: 14px; text-align: left;">
+                            <label for="certRecipientInput" style="font-size: 0.88rem; font-weight: 600; color: #166534; display: block; margin-bottom: 6px;">
+                                <i class="fas fa-user-edit" style="margin-right: 4px;"></i> ชื่อ - นามสกุล (พร้อมคำนำหน้า) <span style="color:#EF4444;">*</span>
+                            </label>
+                            <input type="text" id="certRecipientInput" class="form-control" placeholder="เช่น นายสมศักดิ์ รักการเรียน หรือ ดร.สมหญิง จริงใจ" required style="width: 100%; padding: 12px 14px; font-size: 1rem; border-radius: 10px; border: 2px solid #A7F3D0; background: white; text-align: center; font-weight: 600;">
+                        </div>
+
+                        <!-- LINE In-App Browser Notice -->
+                        <div id="lineBrowserNotice" style="display:none; background: #FEF3C7; border: 1.5px solid #FCD34D; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 0.84rem; color: #92400E; text-align: left; line-height: 1.5;">
+                            <div style="font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+                                <i class="fab fa-line" style="font-size: 1.2rem; color: #06C755;"></i> ผู้ใช้งานผ่าน LINE:
+                            </div>
+                            <div>แอปพลิเคชัน LINE ปิดกั้นการดาวน์โหลดไฟล์ PDF โดยตรง แนะนำให้กดปุ่ม <strong>"บันทึกเป็นรูปภาพ (PNG)"</strong> เพื่อแตะค้างเซฟลงอัลบั้ม หรือกดปุ่ม <strong>"เปิดใน Safari / Chrome"</strong></div>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <button type="button" class="btn btn-primary" id="downloadCertBtn" style="background: #16A34A; border-color: #16A34A; padding: 12px 24px; font-size: 1.05rem; border-radius: 999px; box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35); width: 100%; font-weight: 600;">
+                                <i class="fas fa-file-pdf"></i> สร้างและดาวน์โหลดเกียรติบัตร (PDF)
+                            </button>
+                            <button type="button" class="btn" id="downloadCertImgBtn" style="background: #0284C7; color: white; border: none; padding: 12px 24px; font-size: 1rem; border-radius: 999px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35); width: 100%; font-weight: 600;">
+                                <i class="fas fa-image"></i> บันทึกเป็นรูปภาพ (PNG คมชัดสูง)
+                            </button>
+                            <a id="openExternalBrowserBtn" href="#" style="display:none; background: #0F172A; color: white; text-decoration: none; padding: 10px 20px; font-size: 0.88rem; border-radius: 999px; text-align: center; font-weight: 600; align-items: center; justify-content: center; gap: 6px;">
+                                <i class="fas fa-external-link-alt"></i> เปิดใน Safari / Chrome (แนะนำสำหรับ LINE)
+                            </a>
+                        </div>
+                    </form>
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                    <a href="index.html" class="btn btn-primary">กลับสู่หน้าหลัก</a>
+                    <a href="admin/surveys.html" class="btn btn-outline" id="adminReturnBtn" style="display:none;">กลับหน้าจัดการแบบประเมิน</a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Certificate Preview & Save Modal for LINE & Mobile -->
+    <div id="certModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 99999; overflow-y: auto; padding: 20px 14px; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 16px; max-width: 640px; width: 100%; padding: 20px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); margin: auto; position: relative;">
+            <button type="button" onclick="closeCertModal()" style="position: absolute; right: 14px; top: 14px; background: #F1F5F9; border: none; width: 34px; height: 34px; border-radius: 50%; font-size: 16px; cursor: pointer; color: #64748B; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-times"></i>
+            </button>
+            <h3 style="font-size: 1.15rem; color: #1E293B; margin-bottom: 6px; font-weight: 700;">
+                <i class="fas fa-award text-primary" style="margin-right: 6px;"></i> เกียรติบัตรของคุณ
+            </h3>
+            
+            <div id="certModalLineTip" style="background: #FEF3C7; border: 1px solid #FCD34D; border-radius: 8px; padding: 8px 12px; font-size: 0.82rem; color: #92400E; margin-bottom: 12px; text-align: center;">
+                <i class="fab fa-line" style="color: #06C755;"></i> <strong>วิธีบันทึกใน LINE:</strong> แตะค้างที่รูปภาพด้านล่าง แล้วเลือก <strong>"บันทึกรูปภาพ" (Save Image)</strong>
+            </div>
+
+            <div style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                <img id="certModalImg" src="" alt="Certificate" style="width: 100%; height: auto; display: block; -webkit-touch-callout: default !important;">
+            </div>
+
+            <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                <a id="certModalDownloadPngBtn" href="#" download="Certificate.png" class="btn" style="background: #0284C7; color: white; border-radius: 999px; padding: 10px 20px; font-size: 0.9rem; font-weight: 600; text-decoration: none;">
+                    <i class="fas fa-download"></i> บันทึกรูปภาพ (PNG)
+                </a>
+                <button type="button" id="certModalDownloadPdfBtn" class="btn btn-primary" style="background: #16A34A; border-color: #16A34A; border-radius: 999px; padding: 10px 20px; font-size: 0.9rem; font-weight: 600;">
+                    <i class="fas fa-file-pdf"></i> ดาวน์โหลด PDF
+                </button>
+                <button type="button" onclick="closeCertModal()" class="btn btn-outline" style="border-radius: 999px; padding: 10px 20px; font-size: 0.9rem;">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Container for Certificate Generation -->
+    <div id="hiddenCertContainer" style="position: absolute; left: -9999px; top: -9999px;">
+        <div id="userCertSheet" class="cert-bg-gold-luxury">
+            <!-- Dynamic elements populated by JS -->
+        </div>
+    </div>
+
+    <script src="js/survey.js?v=2.0"></script>
+</body>
+</html>

@@ -1,0 +1,333 @@
+// Stats JS - Real API Integration
+
+let currentSurveyId = null;
+let currentStatsData = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    checkAuth();
+    loadSurveySelector();
+
+    // Check if survey ID is in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlId = urlParams.get('id');
+    if (urlId) {
+        currentSurveyId = urlId;
+    }
+});
+
+async function loadSurveySelector() {
+    const selector = document.getElementById('surveySelector');
+    if (!selector) return;
+
+    try {
+        const res = await api('../api/surveys.php');
+        if (res && res.success && res.data) {
+            selector.innerHTML = '<option value="">-- เลือกแบบประเมิน --</option>';
+            res.data.forEach(s => {
+                const selected = currentSurveyId == s.id ? 'selected' : '';
+                selector.innerHTML += `<option value="${s.id}" ${selected}>${s.title} (${s.response_count || 0} คำตอบ)</option>`;
+            });
+
+            selector.addEventListener('change', () => {
+                currentSurveyId = selector.value;
+                if (currentSurveyId) {
+                    loadSurveyStats(currentSurveyId);
+                }
+            });
+
+            // Load initial stats if survey ID set
+            if (currentSurveyId) {
+                selector.value = currentSurveyId;
+                loadSurveyStats(currentSurveyId);
+            }
+        }
+    } catch (err) {
+        console.error('Error loading surveys:', err);
+    }
+}
+
+async function loadSurveyStats(surveyId) {
+    const statsArea = document.getElementById('statsArea');
+    if (!statsArea) return;
+
+    try {
+        const res = await api(`../api/stats.php?type=survey&id=${surveyId}`);
+        if (!res || !res.success) {
+            showToast('ไม่สามารถโหลดข้อมูลสถิติได้', 'error');
+            return;
+        }
+
+        currentStatsData = res.data;
+        const data = res.data;
+        statsArea.style.display = 'block';
+
+        // Update overview cards
+        const totalEl = document.getElementById('statsTotalResponses');
+        const avgEl = document.getElementById('statsAvgRating');
+        if (totalEl) totalEl.textContent = data.total_responses || 0;
+        if (avgEl) avgEl.textContent = parseFloat(data.avg_rating || 0).toFixed(2);
+
+        // Find highest/lowest
+        const questions = data.questions || [];
+        if (questions.length > 0) {
+            const sorted = [...questions].sort((a, b) => parseFloat(b.avg_rating) - parseFloat(a.avg_rating));
+            const highEl = document.getElementById('statsHighest');
+            const lowEl = document.getElementById('statsLowest');
+            if (highEl) highEl.textContent = sorted[0].question_text + ' (' + parseFloat(sorted[0].avg_rating).toFixed(2) + ')';
+            if (lowEl) lowEl.textContent = sorted[sorted.length - 1].question_text + ' (' + parseFloat(sorted[sorted.length - 1].avg_rating).toFixed(2) + ')';
+        }
+
+        // Render charts
+        renderDonutChart(data.distribution);
+        renderBarChart(data.questions);
+        renderDemographicCharts(data);
+        renderQuestionTable(data.questions);
+
+    } catch (err) {
+        console.error('Error loading stats:', err);
+    }
+}
+
+function renderDonutChart(distribution) {
+    const ctx = document.getElementById('donutChart');
+    if (!ctx) return;
+
+    // Destroy existing chart
+    if (ctx._chartInstance) ctx._chartInstance.destroy();
+
+    const labels = ['5 ดาว', '4 ดาว', '3 ดาว', '2 ดาว', '1 ดาว'];
+    const chartData = [
+        distribution['5'] || 0,
+        distribution['4'] || 0,
+        distribution['3'] || 0,
+        distribution['2'] || 0,
+        distribution['1'] || 0
+    ];
+
+    const chart = new Chart(ctx.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: chartData,
+                backgroundColor: ['#10B981', '#34D399', '#FCD34D', '#F87171', '#EF4444'],
+                borderWidth: 0,
+                cutout: '70%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+    ctx._chartInstance = chart;
+}
+
+function renderBarChart(questions) {
+    const ctx = document.getElementById('barChart');
+    if (!ctx || !questions || questions.length === 0) return;
+
+    if (ctx._chartInstance) ctx._chartInstance.destroy();
+
+    const labels = questions.map((q, i) => `ข้อ ${i + 1}`);
+    const data = questions.map(q => parseFloat(q.avg_rating || 0));
+
+    const chart = new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'คะแนนเฉลี่ย',
+                data: data,
+                backgroundColor: 'rgba(79, 70, 229, 0.8)',
+                borderRadius: 6,
+                barThickness: 40
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, max: 5, ticks: { stepSize: 1 } }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: function(tooltipItems) {
+                            const idx = tooltipItems[0].dataIndex;
+                            return questions[idx].question_text;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    ctx._chartInstance = chart;
+}
+
+function renderDemographicCharts(data) {
+    // Gender pie chart
+    const genderCtx = document.getElementById('pieChart');
+    if (genderCtx && data.gender && data.gender.length > 0) {
+        if (genderCtx._chartInstance) genderCtx._chartInstance.destroy();
+
+        const chart = new Chart(genderCtx.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: data.gender.map(g => g.gender || 'ไม่ระบุ'),
+                datasets: [{
+                    data: data.gender.map(g => g.count),
+                    backgroundColor: ['#4F46E5', '#EC4899', '#9CA3AF', '#F59E0B'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+        genderCtx._chartInstance = chart;
+    }
+
+    // Age bar chart
+    const ageCtx = document.getElementById('ageChart');
+    if (ageCtx && data.age_range && data.age_range.length > 0) {
+        if (ageCtx._chartInstance) ageCtx._chartInstance.destroy();
+
+        const chart = new Chart(ageCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: data.age_range.map(a => a.age_range),
+                datasets: [{
+                    label: 'จำนวน (คน)',
+                    data: data.age_range.map(a => a.count),
+                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: { legend: { display: false } }
+            }
+        });
+        ageCtx._chartInstance = chart;
+    }
+
+    // Role bar chart
+    const roleCtx = document.getElementById('roleChart');
+    if (roleCtx && data.role && data.role.length > 0) {
+        if (roleCtx._chartInstance) roleCtx._chartInstance.destroy();
+
+        const chart = new Chart(roleCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: data.role.map(r => r.role),
+                datasets: [{
+                    label: 'จำนวน (คน)',
+                    data: data.role.map(r => r.count),
+                    backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: { legend: { display: false } }
+            }
+        });
+        roleCtx._chartInstance = chart;
+    }
+}
+
+function renderQuestionTable(questions) {
+    const tbody = document.getElementById('questionStatsTable');
+    if (!tbody || !questions) return;
+
+    tbody.innerHTML = questions.map((q, i) => `
+        <tr>
+            <td style="text-align:center;">${i + 1}</td>
+            <td>${q.question_text}</td>
+            <td style="text-align:center; font-weight:600;">${parseFloat(q.avg_rating || 0).toFixed(2)}</td>
+            <td style="text-align:center;">${q.min_rating || '-'}</td>
+            <td style="text-align:center;">${q.max_rating || '-'}</td>
+            <td style="text-align:center;">${parseFloat(q.std_dev || 0).toFixed(2)}</td>
+            <td style="text-align:center;">${q.count || 0}</td>
+        </tr>
+    `).join('');
+}
+
+async function exportToExcel() {
+    if (!currentSurveyId) {
+        showToast('กรุณาเลือกแบบประเมินก่อน', 'warning');
+        return;
+    }
+
+    try {
+        showToast('กำลังเตรียมข้อมูลสำหรับส่งออก...', 'info');
+
+        const res = await api(`../api/stats.php?type=export&id=${currentSurveyId}`);
+        if (!res || !res.success) {
+            showToast('ไม่สามารถโหลดข้อมูลได้', 'error');
+            return;
+        }
+
+        const exportData = res.data;
+        const wb = XLSX.utils.book_new();
+
+        // Sheet 1: Summary
+        const summaryRows = [
+            ['รายงานผลสถิติแบบประเมิน'],
+            ['ชื่อแบบประเมิน', exportData.survey],
+            ['จำนวนผู้ตอบ', (exportData.data || []).length + ' คน'],
+            [],
+            ['ลำดับ', 'หัวข้อ', 'คะแนนเฉลี่ย', 'ต่ำสุด', 'สูงสุด', 'จำนวน']
+        ];
+        (exportData.summary || []).forEach((s, i) => {
+            summaryRows.push([i + 1, s.question, s.avg, s.min, s.max, s.count]);
+        });
+        const ws_summary = XLSX.utils.aoa_to_sheet(summaryRows);
+        XLSX.utils.book_append_sheet(wb, ws_summary, 'สรุปผล');
+
+        // Sheet 2: Raw Data
+        if (exportData.data && exportData.data.length > 0) {
+            const ws_data = XLSX.utils.json_to_sheet(exportData.data);
+            XLSX.utils.book_append_sheet(wb, ws_data, 'ข้อมูลดิบ');
+        }
+
+        // Sheet 3: Statistics (from current stats data)
+        if (currentStatsData && currentStatsData.questions) {
+            const statsRows = [
+                ['ข้อ', 'หัวข้อ', 'คะแนนเฉลี่ย', 'ต่ำสุด', 'สูงสุด', 'S.D.', 'จำนวน']
+            ];
+            currentStatsData.questions.forEach((q, i) => {
+                statsRows.push([
+                    i + 1,
+                    q.question_text,
+                    parseFloat(q.avg_rating || 0).toFixed(2),
+                    q.min_rating || '',
+                    q.max_rating || '',
+                    parseFloat(q.std_dev || 0).toFixed(2),
+                    q.count || 0
+                ]);
+            });
+            const ws_stats = XLSX.utils.aoa_to_sheet(statsRows);
+            XLSX.utils.book_append_sheet(wb, ws_stats, 'สถิติรายข้อ');
+        }
+
+        // Generate and download file
+        const fileName = `รายงานผล_${exportData.survey || 'survey'}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        showToast('ส่งออกไฟล์ Excel สำเร็จ', 'success');
+
+    } catch (error) {
+        console.error('Export error:', error);
+        showToast('เกิดข้อผิดพลาดในการส่งออกไฟล์', 'error');
+    }
+}

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>หน้าหลัก - ระบบประเมินความพึงพอใจ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <i class="fas fa-clipboard-check"></i>
+                <span>FeedbackAdmin</span>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item active">
+                    <i class="fas fa-home"></i> หน้าหลัก
+                </a>
+                <a href="surveys.html" class="nav-item">
+                    <i class="fas fa-clipboard-list"></i> แบบประเมิน
+                </a>
+                <a href="stats.html" class="nav-item">
+                    <i class="fas fa-chart-bar"></i> รายงานผล
+                </a>
+                <a href="responses.html" class="nav-item">
+                    <i class="fas fa-users"></i> ผู้ตอบแบบประเมิน
+                </a>
+                <a href="certificates.html" class="nav-item">
+                    <i class="fas fa-award"></i> ออกเกียรติบัตร
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-cog"></i> ตั้งค่า
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-avatar">AD</div>
+                <div class="user-info">
+                    <div class="user-name">แอดมิน ระบบ</div>
+                    <div class="user-role">ผู้ดูแลระบบ</div>
+                </div>
+                <button class="logout-btn" onclick="logout()" title="ออกจากระบบ">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="mobile-toggle" id="mobileToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="page-title">ภาพรวมระบบ</h1>
+                </div>
+                <div class="header-right">
+                    <div class="date-display" id="currentDate">--</div>
+                    <div class="notification-bell">
+                        <i class="far fa-bell"></i>
+                        <div class="notification-badge">3</div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <div class="content-area animate-fade">
+                <!-- Welcome Banner -->
+                <div class="welcome-banner">
+                    <div class="welcome-content">
+                        <div class="welcome-text">ยินดีต้อนรับเข้าสู่</div>
+                        <h2 class="welcome-title">ระบบประเมินพึงพอใจ</h2>
+                        <div class="welcome-subtitle">เก็บรวบรวมความคิดเห็น เพื่อนำไปพัฒนาการให้บริการที่ดียิ่งขึ้น</div>
+                        <div class="welcome-stars">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card bg-light-blue">
+                        <div class="stat-icon primary"><i class="fas fa-clipboard"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">แบบประเมินทั้งหมด</div>
+                            <div class="stat-value" id="statTotalSurveys">12</div>
+                            <div class="stat-unit">รายการ</div>
+                        </div>
+                    </div>
+                    <div class="stat-card bg-light-green">
+                        <div class="stat-icon success"><i class="fas fa-users"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">ผู้ตอบแบบประเมิน</div>
+                            <div class="stat-value" id="statTotalResponses">1,245</div>
+                            <div class="stat-unit">คน</div>
+                        </div>
+                    </div>
+                    <div class="stat-card bg-light-yellow">
+                        <div class="stat-icon accent"><i class="fas fa-star"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">คะแนนเฉลี่ยรวม</div>
+                            <div class="stat-value" id="statAvgScore">4.56<span class="stat-unit">/5.00</span></div>
+                        </div>
+                    </div>
+                    <div class="stat-card bg-light-purple">
+                        <div class="stat-icon purple"><i class="fas fa-chart-line"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">แบบประเมินที่เผยแพร่</div>
+                            <div class="stat-value" id="statActiveSurveys">5</div>
+                            <div class="stat-unit">รายการ</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Grid -->
+                <div class="dashboard-grid">
+                    <!-- Left Col -->
+                    <div class="left-col">
+                        <!-- Quick Actions -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">การดำเนินการด่วน</h3>
+                            </div>
+                            <div class="quick-actions">
+                                <button class="action-btn" onclick="location.href='survey-edit.html'">
+                                    <div class="action-icon"><i class="fas fa-plus"></i></div>
+                                    <span class="action-label">สร้างแบบประเมิน</span>
+                                </button>
+                                <button class="action-btn" onclick="location.href='surveys.html'">
+                                    <div class="action-icon"><i class="fas fa-tasks"></i></div>
+                                    <span class="action-label">จัดการแบบประเมิน</span>
+                                </button>
+                                <button class="action-btn" onclick="location.href='stats.html'">
+                                    <div class="action-icon"><i class="fas fa-chart-pie"></i></div>
+                                    <span class="action-label">ดูรายงานผล</span>
+                                </button>
+                                <button class="action-btn" onclick="location.href='stats.html'">
+                                    <div class="action-icon"><i class="fas fa-file-export"></i></div>
+                                    <span class="action-label">ส่งออกข้อมูล</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Recent Surveys -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">แบบประเมินล่าสุด</h3>
+                            </div>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ชื่อแบบประเมิน</th>
+                                            <th>ผู้ตอบ</th>
+                                            <th>สถานะ</th>
+                                            <th>จัดการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="recentSurveysTable">
+                                        <!-- Populated via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div style="text-align: center; margin-top: 16px;">
+                                <a href="surveys.html" style="color: var(--primary); text-decoration: none; font-size: 0.875rem;">ดูทั้งหมด <i class="fas fa-arrow-right"></i></a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Col -->
+                    <div class="right-col">
+                        <!-- Overview Chart -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">ภาพรวมผลประเมิน</h3>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="overviewChart"></canvas>
+                                <div class="chart-center-text">
+                                    <div class="chart-center-value">4.56</div>
+                                    <div class="chart-center-label">จาก 5.00</div>
+                                </div>
+                            </div>
+                            <div class="rating-bars">
+                                <div class="rating-bar-item">
+                                    <div class="rating-label">5 ดาว</div>
+                                    <div class="rating-track"><div class="rating-fill" style="width: 65%;"></div></div>
+                                    <div class="rating-percent">65%</div>
+                                </div>
+                                <div class="rating-bar-item">
+                                    <div class="rating-label">4 ดาว</div>
+                                    <div class="rating-track"><div class="rating-fill" style="width: 25%;"></div></div>
+                                    <div class="rating-percent">25%</div>
+                                </div>
+                                <div class="rating-bar-item">
+                                    <div class="rating-label">3 ดาว</div>
+                                    <div class="rating-track"><div class="rating-fill" style="width: 7%;"></div></div>
+                                    <div class="rating-percent">7%</div>
+                                </div>
+                                <div class="rating-bar-item">
+                                    <div class="rating-label">2 ดาว</div>
+                                    <div class="rating-track"><div class="rating-fill" style="width: 2%;"></div></div>
+                                    <div class="rating-percent">2%</div>
+                                </div>
+                                <div class="rating-bar-item">
+                                    <div class="rating-label">1 ดาว</div>
+                                    <div class="rating-track"><div class="rating-fill" style="width: 1%;"></div></div>
+                                    <div class="rating-percent">1%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Responses -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">การประเมินล่าสุด</h3>
+                            </div>
+                            <div class="recent-list" id="recentResponsesList">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/admin.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            initDashboard();
+        });
+
+        async function initDashboard() {
+            try {
+                // Load overview stats
+                const statsRes = await api('../api/stats.php?type=overview');
+                if (statsRes && statsRes.success && statsRes.data) {
+                    const d = statsRes.data;
+                    document.getElementById('statTotalSurveys').textContent = d.total_surveys || 0;
+                    document.getElementById('statTotalResponses').textContent = (d.total_responses || 0).toLocaleString();
+                    const avg = parseFloat(d.avg_rating || 0).toFixed(2);
+                    document.getElementById('statAvgScore').innerHTML = `${avg}<span class="stat-unit">/5.00</span>`;
+                    document.getElementById('statActiveSurveys').textContent = d.published_count || 0;
+
+                    // Donut chart
+                    const dist = d.rating_distribution || {};
+                    const chartData = [dist['5'] || 0, dist['4'] || 0, dist['3'] || 0, dist['2'] || 0, dist['1'] || 0];
+                    const total = chartData.reduce((a, b) => a + b, 0) || 1;
+
+                    const ctx = document.getElementById('overviewChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['5 ดาว', '4 ดาว', '3 ดาว', '2 ดาว', '1 ดาว'],
+                            datasets: [{
+                                data: chartData,
+                                backgroundColor: ['#10B981', '#34D399', '#FCD34D', '#F87171', '#EF4444'],
+                                borderWidth: 0,
+                                cutout: '75%'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+
+                    // Update chart center
+                    const centerValue = document.querySelector('.chart-center-value');
+                    if (centerValue) centerValue.textContent = avg;
+
+                    // Update rating bars
+                    const barItems = document.querySelectorAll('.rating-bar-item');
+                    chartData.forEach((val, i) => {
+                        if (barItems[i]) {
+                            const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                            const fill = barItems[i].querySelector('.rating-fill');
+                            const percent = barItems[i].querySelector('.rating-percent');
+                            if (fill) fill.style.width = pct + '%';
+                            if (percent) percent.textContent = pct + '%';
+                        }
+                    });
+                }
+
+                // Load recent surveys
+                const surveysRes = await api('../api/stats.php?type=recent_surveys');
+                const surveysTable = document.getElementById('recentSurveysTable');
+                if (surveysRes && surveysRes.success && surveysRes.data && surveysTable) {
+                    if (surveysRes.data.length === 0) {
+                        surveysTable.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#94A3B8;padding:2rem;">ยังไม่มีแบบประเมิน</td></tr>';
+                    } else {
+                        surveysTable.innerHTML = surveysRes.data.map(s => `
+                            <tr>
+                                <td style="font-weight: 500;">${s.title}</td>
+                                <td>${s.response_count || 0}</td>
+                                <td>${statusBadge(s.status)}</td>
+                                <td>
+                                    <button class="btn-icon" title="ดูผล" onclick="location.href='stats.html?id=${s.id}'"><i class="fas fa-chart-pie"></i></button>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+
+                // Load recent responses
+                const responsesRes = await api('../api/stats.php?type=recent');
+                const responsesList = document.getElementById('recentResponsesList');
+                if (responsesRes && responsesRes.success && responsesRes.data && responsesList) {
+                    if (responsesRes.data.length === 0) {
+                        responsesList.innerHTML = '<div style="text-align:center;color:#94A3B8;padding:2rem;">ยังไม่มีการตอบแบบประเมิน</div>';
+                    } else {
+                        responsesList.innerHTML = responsesRes.data.map(r => {
+                            const avgR = parseFloat(r.avg_rating || 0);
+                            const initials = (r.role || 'ผู้').substring(0, 2);
+                            return `
+                            <div class="recent-item">
+                                <div class="recent-avatar">${initials}</div>
+                                <div class="recent-content">
+                                    <div class="recent-title">${r.gender || ''} ${r.role || 'ผู้ตอบ'}</div>
+                                    <div class="recent-meta">${r.survey_title || ''} • ${formatThaiDateTime(r.submitted_at)}</div>
+                                    <div class="recent-stars">${starRating(avgR)}</div>
+                                </div>
+                            </div>`;
+                        }).join('');
+                    }
+                }
+            } catch (err) {
+                console.error('Dashboard init error:', err);
+            }
+        }
+    </script>
+</body>
+</html>

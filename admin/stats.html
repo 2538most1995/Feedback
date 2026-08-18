@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานผลสถิติ - ระบบประเมินความพึงพอใจ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <style>
+        .stats-header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .demographics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        @media (max-width: 1024px) {
+            .demographics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 640px) {
+            .demographics-grid {
+                grid-template-columns: 1fr;
+            }
+            .stats-header-controls {
+                width: 100%;
+            }
+            .stats-header-controls select,
+            .stats-header-controls button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <i class="fas fa-clipboard-check"></i>
+                <span>FeedbackAdmin</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item">
+                    <i class="fas fa-home"></i> หน้าหลัก
+                </a>
+                <a href="surveys.html" class="nav-item">
+                    <i class="fas fa-clipboard-list"></i> แบบประเมิน
+                </a>
+                <a href="stats.html" class="nav-item active">
+                    <i class="fas fa-chart-bar"></i> รายงานผล
+                </a>
+                <a href="responses.html" class="nav-item">
+                    <i class="fas fa-users"></i> ผู้ตอบแบบประเมิน
+                </a>
+                <a href="certificates.html" class="nav-item">
+                    <i class="fas fa-award"></i> ออกเกียรติบัตร
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-cog"></i> ตั้งค่า
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-avatar">AD</div>
+                <div class="user-info">
+                    <div class="user-name">แอดมิน ระบบ</div>
+                    <div class="user-role">ผู้ดูแลระบบ</div>
+                </div>
+                <button class="logout-btn" onclick="logout()" title="ออกจากระบบ">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="mobile-toggle" id="mobileToggle"><i class="fas fa-bars"></i></button>
+                    <h1 class="page-title">รายงานผลและสถิติ</h1>
+                </div>
+                <div class="header-right">
+                    <div class="stats-header-controls">
+                        <select class="form-control" style="min-width: 220px;" id="surveySelector">
+                            <option value="">-- เลือกแบบประเมิน --</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> ส่งออก Excel</button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-area animate-fade">
+                <div id="statsArea" style="display:none;">
+                    <!-- Overview Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card bg-light-blue">
+                            <div class="stat-icon primary"><i class="fas fa-users"></i></div>
+                            <div class="stat-info">
+                                <div class="stat-label">จำนวนผู้ตอบ</div>
+                                <div class="stat-value" id="statsTotalResponses">0 <span class="stat-unit">คน</span></div>
+                            </div>
+                        </div>
+                        <div class="stat-card bg-light-yellow">
+                            <div class="stat-icon accent"><i class="fas fa-star"></i></div>
+                            <div class="stat-info">
+                                <div class="stat-label">คะแนนเฉลี่ยรวม</div>
+                                <div class="stat-value" id="statsAvgRating">0 <span class="stat-unit">/ 5.00</span></div>
+                            </div>
+                        </div>
+                        <div class="stat-card bg-light-green">
+                            <div class="stat-icon success"><i class="fas fa-arrow-up"></i></div>
+                            <div class="stat-info">
+                                <div class="stat-label">ข้อที่ได้คะแนนสูงสุด</div>
+                                <div class="stat-value" id="statsHighest" style="font-size: 0.875rem;">-</div>
+                            </div>
+                        </div>
+                        <div class="stat-card bg-light-purple">
+                            <div class="stat-icon purple"><i class="fas fa-arrow-down"></i></div>
+                            <div class="stat-info">
+                                <div class="stat-label">ข้อที่ได้คะแนนต่ำสุด</div>
+                                <div class="stat-value" id="statsLowest" style="font-size: 0.875rem;">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row 1: Bar + Donut -->
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <h3 class="card-title"><i class="fas fa-chart-bar" style="color:var(--primary);margin-right:8px;"></i>คะแนนเฉลี่ยรายข้อ</h3>
+                            <div style="height: 300px; width: 100%; position: relative;"><canvas id="barChart"></canvas></div>
+                        </div>
+                        <div class="card">
+                            <h3 class="card-title"><i class="fas fa-chart-pie" style="color:var(--primary);margin-right:8px;"></i>การกระจายคะแนน</h3>
+                            <div style="height: 300px; width: 100%; position: relative;"><canvas id="donutChart"></canvas></div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row 2: Demographics -->
+                    <div class="demographics-grid" style="margin-bottom: 24px;">
+                        <div class="card">
+                            <h3 class="card-title"><i class="fas fa-venus-mars" style="color:#EC4899;margin-right:8px;"></i>แยกตามเพศ</h3>
+                            <div style="height: 260px; width: 100%; position: relative;"><canvas id="pieChart"></canvas></div>
+                        </div>
+                        <div class="card">
+                            <h3 class="card-title"><i class="fas fa-birthday-cake" style="color:#10B981;margin-right:8px;"></i>แยกตามอายุ</h3>
+                            <div style="height: 260px; width: 100%; position: relative;"><canvas id="ageChart"></canvas></div>
+                        </div>
+                        <div class="card">
+                            <h3 class="card-title"><i class="fas fa-user-tag" style="color:#F59E0B;margin-right:8px;"></i>แยกตามบทบาท</h3>
+                            <div style="height: 260px; width: 100%; position: relative;"><canvas id="roleChart"></canvas></div>
+                        </div>
+                    </div>
+
+                    <!-- Question Stats Table -->
+                    <div class="card">
+                        <h3 class="card-title"><i class="fas fa-table" style="color:var(--primary);margin-right:8px;"></i>รายละเอียดสถิติรายข้อ</h3>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width:50px; text-align:center;">ข้อ</th>
+                                        <th>หัวข้อการประเมิน</th>
+                                        <th style="width:100px; text-align:center;">Mean (x̄)</th>
+                                        <th style="width:70px; text-align:center;">Min</th>
+                                        <th style="width:70px; text-align:center;">Max</th>
+                                        <th style="width:80px; text-align:center;">S.D.</th>
+                                        <th style="width:70px; text-align:center;">N</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="questionStatsTable">
+                                    <!-- Populated by stats.js -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty state when no survey selected -->
+                <div id="emptyStatsState" style="text-align:center;padding:4rem 2rem;">
+                    <i class="fas fa-chart-bar" style="font-size:4rem;color:#CBD5E1;margin-bottom:1.5rem;display:block;"></i>
+                    <h3 style="color:#64748B;margin-bottom:0.5rem;">เลือกแบบประเมินเพื่อดูสถิติ</h3>
+                    <p style="color:#94A3B8;">กรุณาเลือกแบบประเมินจากเมนูด้านบน</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/stats.js"></script>
+</body>
+</html>
