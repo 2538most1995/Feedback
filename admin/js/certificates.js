@@ -928,6 +928,25 @@ function initDragAndDrop() {
     }
 }
 
+function syncAllUIInputsToConfig() {
+    const titleIn = document.getElementById('inputTitle');
+    if (titleIn) certConfig.title = titleIn.value;
+    const subIn = document.getElementById('inputSubtitle');
+    if (subIn) certConfig.subtitle = subIn.value;
+    const recIn = document.getElementById('inputRecipient');
+    if (recIn) certConfig.recipient_name = recIn.value;
+    const bodyIn = document.getElementById('inputBody');
+    if (bodyIn) certConfig.body_text = bodyIn.value;
+    const dateIn = document.getElementById('inputDate');
+    if (dateIn) certConfig.issued_date = dateIn.value;
+    const issuerNameIn = document.getElementById('inputIssuerName');
+    if (issuerNameIn) certConfig.issuer_name = issuerNameIn.value;
+    const issuerTitleIn = document.getElementById('inputIssuerTitle');
+    if (issuerTitleIn) certConfig.issuer_title = issuerTitleIn.value;
+    const enableToggle = document.getElementById('enableCertToggle');
+    if (enableToggle) certConfig.is_enabled = enableToggle.checked ? 1 : 0;
+}
+
 // Save Certificate Configuration to Database
 async function saveCertificateConfig() {
     if (!currentSurveyId) {
@@ -935,21 +954,23 @@ async function saveCertificateConfig() {
         return;
     }
 
+    syncAllUIInputsToConfig();
+
     const payload = {
         survey_id: currentSurveyId,
         is_enabled: certConfig.is_enabled ? 1 : 0,
-        title: certConfig.title,
-        subtitle: certConfig.subtitle,
-        recipient_name: certConfig.recipient_name,
-        body_text: certConfig.body_text,
-        issued_date: certConfig.issued_date,
-        issuer_name: certConfig.issuer_name,
-        issuer_title: certConfig.issuer_title,
-        logo_url: certConfig.logo_url,
-        signature_url: certConfig.signature_url,
-        bg_image_url: certConfig.bg_image_url,
-        bg_preset: certConfig.bg_preset,
-        elements_config: certConfig.elements_config
+        title: certConfig.title || 'เกียรติบัตร',
+        subtitle: certConfig.subtitle || 'มอบให้ไว้เพื่อแสดงว่า',
+        recipient_name: certConfig.recipient_name || '{name}',
+        body_text: certConfig.body_text || '',
+        issued_date: certConfig.issued_date || '{date}',
+        issuer_name: certConfig.issuer_name || '',
+        issuer_title: certConfig.issuer_title || '',
+        logo_url: certConfig.logo_url || '',
+        signature_url: certConfig.signature_url || '',
+        bg_image_url: certConfig.bg_image_url || '',
+        bg_preset: certConfig.bg_preset || 'gold-luxury',
+        elements_config: certConfig.elements_config || defaultPositions
     };
 
     const saveBtn = document.getElementById('saveCertBtn');
@@ -981,16 +1002,19 @@ async function previewCertificatePdf() {
         return;
     }
 
+    syncAllUIInputsToConfig();
+
     const previewBtn = document.getElementById('previewCertBtn');
     const mobilePreviewBtn = document.getElementById('mobilePreviewCertBtn');
     setButtonLoading(previewBtn, true, 'กำลังสร้าง PDF...');
     setButtonLoading(mobilePreviewBtn, true, 'สร้าง PDF...');
 
     const exportDiv = document.createElement('div');
+    exportDiv.id = 'tempPdfExportNode';
     exportDiv.style.position = 'fixed';
-    exportDiv.style.left = '0';
+    exportDiv.style.left = '-99999px';
     exportDiv.style.top = '0';
-    exportDiv.style.zIndex = '-9999';
+    exportDiv.style.zIndex = '10000';
     exportDiv.style.width = '1123px';
     exportDiv.style.height = '794px';
     exportDiv.style.boxSizing = 'border-box';
@@ -998,6 +1022,8 @@ async function previewCertificatePdf() {
     exportDiv.style.padding = '0';
     exportDiv.style.overflow = 'hidden';
     exportDiv.style.backgroundColor = '#FFFFFF';
+    exportDiv.style.opacity = '1';
+    exportDiv.style.visibility = 'visible';
     exportDiv.className = `cert-bg-${certConfig.bg_preset || 'gold-luxury'}`;
 
     if (certConfig.bg_preset === 'custom' && certConfig.bg_image_url) {
@@ -1070,20 +1096,32 @@ async function previewCertificatePdf() {
     document.body.appendChild(exportDiv);
 
     try {
+        if (typeof html2canvas === 'undefined') {
+            throw new Error('ไม่พบไลบรารี html2canvas ในระบบ');
+        }
+
         const canvas = await html2canvas(exportDiv, {
             scale: 2,
             useCORS: true,
+            allowTaint: true,
             logging: false,
             width: 1123,
             height: 794,
             scrollX: 0,
             scrollY: 0,
-            backgroundColor: '#FFFFFF'
+            backgroundColor: '#FFFFFF',
+            windowWidth: 1123,
+            windowHeight: 794
         });
 
         const imgData = canvas.toDataURL('image/jpeg', 0.98);
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({
+        const jsPDFConstructor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : (window.jsPDF || null);
+        
+        if (!jsPDFConstructor) {
+            throw new Error('ไม่พบไลบรารี jsPDF ในระบบ');
+        }
+
+        const pdf = new jsPDFConstructor({
             orientation: 'landscape',
             unit: 'mm',
             format: 'a4'
@@ -1091,7 +1129,7 @@ async function previewCertificatePdf() {
 
         // Exact 100% full bleed: (x=0, y=0, width=297mm, height=210mm)
         pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210, undefined, 'FAST');
-        pdf.save(`Certificate_Preview_${currentSurveyId}.pdf`);
+        pdf.save(`Certificate_Preview_${currentSurveyId || 'survey'}.pdf`);
 
         document.body.removeChild(exportDiv);
         setButtonLoading(previewBtn, false);
@@ -1104,7 +1142,7 @@ async function previewCertificatePdf() {
         if (document.body.contains(exportDiv)) {
             document.body.removeChild(exportDiv);
         }
-        showToast('เกิดข้อผิดพลาดในการสร้างไฟล์ PDF', 'error');
+        showToast('เกิดข้อผิดพลาดในการสร้างไฟล์ PDF: ' + (err.message || ''), 'error');
     }
 }
 
@@ -1115,7 +1153,7 @@ function getSampleThaiDate() {
     const date = now.getDate();
     const month = thaiMonths[now.getMonth()];
     const year = now.getFullYear() + 543;
-    return `ให้ไว้ ณ วันที่ ${date} ${month} พ.ศ. ${year}`;
+    return `${date} ${month} พ.ศ. ${year}`;
 }
 
 function escapeHtml(text) {

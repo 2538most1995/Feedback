@@ -609,8 +609,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const downloadPdfAction = () => {
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({
+                const jsPDFConstructor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : (window.jsPDF || null);
+                if (!jsPDFConstructor) {
+                    alert('ไม่พบไลบรารีสร้างไฟล์ PDF ในเบราว์เซอร์');
+                    return;
+                }
+                const pdf = new jsPDFConstructor({
                     orientation: 'landscape',
                     unit: 'mm',
                     format: 'a4'

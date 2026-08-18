@@ -2,11 +2,11 @@
 // /Applications/MAMP/htdocs/Feedback/api/certificates.php
 require_once 'config.php';
 
-// Ensure table exists
+// Ensure table exists with maximum MySQL/MariaDB compatibility
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS certificates (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        survey_id INT NOT NULL UNIQUE,
+        survey_id INT NOT NULL,
         is_enabled TINYINT(1) DEFAULT 1,
         title VARCHAR(255) DEFAULT 'เกียรติบัตร',
         subtitle VARCHAR(255) DEFAULT 'มอบให้ไว้เพื่อแสดงว่า',
@@ -19,13 +19,36 @@ try {
         signature_url LONGTEXT,
         bg_image_url LONGTEXT,
         bg_preset VARCHAR(50) DEFAULT 'gold-luxury',
-        elements_config JSON,
+        elements_config LONGTEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (survey_id) REFERENCES surveys(id) ON DELETE CASCADE
-    )");
+        UNIQUE KEY uq_cert_survey (survey_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 } catch (Exception $e) {
-    // Ignore if table exists or permission issue
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS certificates (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            survey_id INT NOT NULL,
+            is_enabled TINYINT(1) DEFAULT 1,
+            title VARCHAR(255) DEFAULT 'เกียรติบัตร',
+            subtitle VARCHAR(255) DEFAULT 'มอบให้ไว้เพื่อแสดงว่า',
+            recipient_name VARCHAR(255) DEFAULT '{name}',
+            body_text TEXT,
+            issued_date VARCHAR(100) DEFAULT '{date}',
+            issuer_name VARCHAR(255) DEFAULT 'ผู้อำนวยการ / ผู้จัดงาน',
+            issuer_title VARCHAR(255) DEFAULT 'ตำแหน่งผู้มีอำนาจลงนาม',
+            logo_url LONGTEXT,
+            signature_url LONGTEXT,
+            bg_image_url LONGTEXT,
+            bg_preset VARCHAR(50) DEFAULT 'gold-luxury',
+            elements_config LONGTEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_cert_survey (survey_id)
+        )");
+    } catch (Exception $e2) {
+        // Table exists or fallback
+    }
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
