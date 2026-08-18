@@ -995,7 +995,7 @@ async function saveCertificateConfig() {
     }
 }
 
-// Export / Preview PDF (Exact 100% Full Bleed A4 Landscape: 297mm x 210mm)
+// Export / Preview PDF (100% WYSIWYG Pixel-Perfect Match with on-screen editor)
 async function previewCertificatePdf() {
     if (!currentSurveyId) {
         showToast('กรุณาเลือกแบบประเมินก่อนดาวน์โหลดตัวอย่าง', 'error');
@@ -1003,115 +1003,71 @@ async function previewCertificatePdf() {
     }
 
     syncAllUIInputsToConfig();
+    deselectElement();
+    stopAllInlineEditing();
 
     const previewBtn = document.getElementById('previewCertBtn');
     const mobilePreviewBtn = document.getElementById('mobilePreviewCertBtn');
     setButtonLoading(previewBtn, true, 'กำลังสร้าง PDF...');
     setButtonLoading(mobilePreviewBtn, true, 'สร้าง PDF...');
 
-    const exportDiv = document.createElement('div');
-    exportDiv.id = 'tempPdfExportNode';
-    exportDiv.style.position = 'fixed';
-    exportDiv.style.left = '-99999px';
-    exportDiv.style.top = '0';
-    exportDiv.style.zIndex = '10000';
-    exportDiv.style.width = '1123px';
-    exportDiv.style.height = '794px';
-    exportDiv.style.boxSizing = 'border-box';
-    exportDiv.style.margin = '0';
-    exportDiv.style.padding = '0';
-    exportDiv.style.overflow = 'hidden';
-    exportDiv.style.backgroundColor = '#FFFFFF';
-    exportDiv.style.opacity = '1';
-    exportDiv.style.visibility = 'visible';
-    exportDiv.className = `cert-bg-${certConfig.bg_preset || 'gold-luxury'}`;
-
-    if (certConfig.bg_preset === 'custom' && certConfig.bg_image_url) {
-        exportDiv.style.backgroundImage = `url(${certConfig.bg_image_url})`;
-        exportDiv.style.backgroundSize = '100% 100%';
-        exportDiv.style.backgroundPosition = 'center';
-        exportDiv.style.backgroundRepeat = 'no-repeat';
+    const certSheet = document.getElementById('certSheet');
+    if (!certSheet) {
+        setButtonLoading(previewBtn, false);
+        setButtonLoading(mobilePreviewBtn, false);
+        return;
     }
 
-    const pos = {
-        ...defaultPositions,
-        ...(certConfig.elements_config || {})
-    };
-    const formattedDate = getSampleThaiDate();
-    const titleText = certConfig.title || 'เกียรติบัตร';
-    const subtitleText = certConfig.subtitle || 'มอบให้ไว้เพื่อแสดงว่า';
-    const recipientText = (certConfig.recipient_name || '{name}').replace(/{name}/g, 'นายสมศักดิ์ รักการเรียน');
-    const bodyText = (certConfig.body_text || '').replace(/{date}/g, formattedDate).replace(/{name}/g, 'นายสมศักดิ์ รักการเรียน');
-    const dateText = (certConfig.issued_date || '{date}').replace(/{date}/g, formattedDate);
-    const issuerName = certConfig.issuer_name || '';
-    const issuerTitle = certConfig.issuer_title || '';
+    // Clone the exact visual certificate sheet currently on screen
+    const clone = certSheet.cloneNode(true);
+    clone.id = 'certSheetPdfClone';
 
-    const scaleFactor = 1.337;
-    const logoSize = Math.round((pos.logo && pos.logo.size ? pos.logo.size : 70) * scaleFactor);
-    const titleSize = Math.round((pos.title && pos.title.size ? pos.title.size : 34) * scaleFactor);
-    const subtitleSize = Math.round((pos.subtitle && pos.subtitle.size ? pos.subtitle.size : 17) * scaleFactor);
-    const recipientSize = Math.round((pos.recipient && pos.recipient.size ? pos.recipient.size : 28) * scaleFactor);
-    const bodySize = Math.round((pos.body && pos.body.size ? pos.body.size : 15) * scaleFactor);
-    const dateSize = Math.round((pos.date && pos.date.size ? pos.date.size : 14) * scaleFactor);
-    const signatureSize = Math.round((pos.signature && pos.signature.size ? pos.signature.size : 50) * scaleFactor);
-    const issuerSize = Math.round((pos.issuer && pos.issuer.size ? pos.issuer.size : 15) * scaleFactor);
-    const issuerTitleSize = Math.round(issuerSize * 0.85);
+    // Remove editor-only UI tools from clone
+    const floatingBar = clone.querySelector('#elementFloatingBar');
+    if (floatingBar) floatingBar.remove();
+    const tooltip = clone.querySelector('#resizeTooltip');
+    if (tooltip) tooltip.remove();
 
-    const logoHtml = certConfig.logo_url 
-        ? `<img src="${certConfig.logo_url}" style="max-width:${logoSize}px; max-height:${logoSize}px; object-fit:contain;" alt="Logo">` 
-        : `<i class="fas fa-award" style="font-size: ${Math.round(logoSize * 0.75)}px; color: #D97706;"></i>`;
+    clone.querySelectorAll('.resize-handle').forEach(h => h.remove());
+    clone.querySelectorAll('.cert-element').forEach(el => {
+        el.classList.remove('selected', 'is-editing');
+        el.style.outline = 'none';
+        el.style.boxShadow = 'none';
+    });
 
-    const signatureHtml = certConfig.signature_url 
-        ? `<div style="position: absolute; left: ${pos.signature ? pos.signature.x : 50}%; top: ${pos.signature ? pos.signature.y : 79}%; transform: translate(-50%, -50%); text-align:center;">
-             <img src="${certConfig.signature_url}" style="height: ${signatureSize}px; max-width: 320px; object-fit:contain;" alt="Signature">
-           </div>` 
-        : ``;
+    // Reset zoom transform and enforce pristine unscaled 840x594 A4 Landscape aspect ratio
+    clone.style.position = 'fixed';
+    clone.style.left = '-99999px';
+    clone.style.top = '0';
+    clone.style.zIndex = '99999';
+    clone.style.width = '840px';
+    clone.style.height = '594px';
+    clone.style.transform = 'none';
+    clone.style.margin = '0';
+    clone.style.opacity = '1';
+    clone.style.visibility = 'visible';
+    clone.style.boxShadow = 'none';
 
-    exportDiv.innerHTML = `
-        <div style="position: absolute; left: ${pos.logo ? pos.logo.x : 50}%; top: ${pos.logo ? pos.logo.y : 14}%; transform: translate(-50%, -50%); text-align:center;">
-            ${logoHtml}
-        </div>
-        <div style="position: absolute; left: ${pos.title ? pos.title.x : 50}%; top: ${pos.title ? pos.title.y : 26}%; transform: translate(-50%, -50%); font-family: 'Prompt', 'Sarabun', sans-serif; font-size: ${titleSize}px; font-weight: 700; color: #1E293B; text-align:center; width: 100%; letter-spacing: 0.5px; white-space: pre-line; word-break: break-word;">
-            ${escapeHtml(titleText)}
-        </div>
-        <div style="position: absolute; left: ${pos.subtitle ? pos.subtitle.x : 50}%; top: ${pos.subtitle ? pos.subtitle.y : 35}%; transform: translate(-50%, -50%); font-family: 'Sarabun', 'Prompt', sans-serif; font-size: ${subtitleSize}px; color: #64748B; text-align:center; width: 100%; white-space: pre-line; word-break: break-word;">
-            ${escapeHtml(subtitleText)}
-        </div>
-        <div style="position: absolute; left: ${pos.recipient ? pos.recipient.x : 50}%; top: ${pos.recipient ? pos.recipient.y : 45}%; transform: translate(-50%, -50%); font-family: 'Prompt', 'Sarabun', sans-serif; font-size: ${recipientSize}px; font-weight: 700; color: #4F46E5; border-bottom: 2px solid #C7D2FE; padding-bottom: 6px; min-width: 380px; text-align:center; white-space: pre-line; word-break: break-word;">
-            ${escapeHtml(recipientText)}
-        </div>
-        <div style="position: absolute; left: ${pos.body ? pos.body.x : 50}%; top: ${pos.body ? pos.body.y : 58}%; transform: translate(-50%, -50%); font-family: 'Sarabun', 'Prompt', sans-serif; font-size: ${bodySize}px; color: #334155; width: 840px; line-height: 1.7; text-align:center; white-space: pre-line; word-break: break-word;">
-            ${escapeHtml(bodyText)}
-        </div>
-        <div style="position: absolute; left: ${pos.date ? pos.date.x : 50}%; top: ${pos.date ? pos.date.y : 70}%; transform: translate(-50%, -50%); font-family: 'Sarabun', 'Prompt', sans-serif; font-size: ${dateSize}px; color: #64748B; text-align:center; width: 100%; white-space: pre-line; word-break: break-word;">
-            ${escapeHtml(dateText)}
-        </div>
-        ${signatureHtml}
-        <div style="position: absolute; left: ${pos.issuer ? pos.issuer.x : 50}%; top: ${pos.issuer ? pos.issuer.y : 89}%; transform: translate(-50%, -50%); text-align:center; white-space: pre-line; word-break: break-word;">
-            <div style="font-family: 'Sarabun', 'Prompt', sans-serif; font-size: ${issuerSize}px; font-weight: 600; color: #1E293B; white-space: pre-line;">${escapeHtml(issuerName)}</div>
-            <div style="font-family: 'Sarabun', 'Prompt', sans-serif; font-size: ${issuerTitleSize}px; color: #64748B; margin-top: 2px; white-space: pre-line;">${escapeHtml(issuerTitle)}</div>
-        </div>
-    `;
-
-    document.body.appendChild(exportDiv);
+    document.body.appendChild(clone);
 
     try {
         if (typeof html2canvas === 'undefined') {
             throw new Error('ไม่พบไลบรารี html2canvas ในระบบ');
         }
 
-        const canvas = await html2canvas(exportDiv, {
-            scale: 2,
+        // Render at 300 DPI high-definition scale (840 * 2.857 = 2400px x 1697px)
+        const canvas = await html2canvas(clone, {
+            scale: 2.857,
             useCORS: true,
             allowTaint: true,
             logging: false,
-            width: 1123,
-            height: 794,
+            width: 840,
+            height: 594,
             scrollX: 0,
             scrollY: 0,
             backgroundColor: '#FFFFFF',
-            windowWidth: 1123,
-            windowHeight: 794
+            windowWidth: 840,
+            windowHeight: 594
         });
 
         const imgData = canvas.toDataURL('image/jpeg', 0.98);
@@ -1127,20 +1083,20 @@ async function previewCertificatePdf() {
             format: 'a4'
         });
 
-        // Exact 100% full bleed: (x=0, y=0, width=297mm, height=210mm)
+        // Exact 100% full bleed A4: 297mm x 210mm
         pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210, undefined, 'FAST');
         pdf.save(`Certificate_Preview_${currentSurveyId || 'survey'}.pdf`);
 
-        document.body.removeChild(exportDiv);
+        document.body.removeChild(clone);
         setButtonLoading(previewBtn, false);
         setButtonLoading(mobilePreviewBtn, false);
-        showToast('ดาวน์โหลดไฟล์ PDF เต็มหน้ากระดาษ A4 สำเร็จ', 'success');
+        showToast('ดาวน์โหลดไฟล์ PDF ตรงกับที่พรีวิว 100% สำเร็จ', 'success');
     } catch (err) {
         setButtonLoading(previewBtn, false);
         setButtonLoading(mobilePreviewBtn, false);
         console.error('PDF error:', err);
-        if (document.body.contains(exportDiv)) {
-            document.body.removeChild(exportDiv);
+        if (document.body.contains(clone)) {
+            document.body.removeChild(clone);
         }
         showToast('เกิดข้อผิดพลาดในการสร้างไฟล์ PDF: ' + (err.message || ''), 'error');
     }

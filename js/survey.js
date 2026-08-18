@@ -469,14 +469,14 @@ document.addEventListener('DOMContentLoaded', () => {
                            'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
         const formattedDate = `${now.getDate()} ${thaiMonths[now.getMonth()]} พ.ศ. ${now.getFullYear() + 543}`;
 
-        // Create an exact A4 landscape offscreen container (1123px x 794px ~ 297mm x 210mm at 96 DPI)
+        // Create an exact A4 landscape offscreen container matching the 840px x 594px editor 1:1
         const exportDiv = document.createElement('div');
         exportDiv.style.position = 'fixed';
         exportDiv.style.left = '-99999px';
         exportDiv.style.top = '0';
-        exportDiv.style.zIndex = '10000';
-        exportDiv.style.width = '1123px';
-        exportDiv.style.height = '794px';
+        exportDiv.style.zIndex = '99999';
+        exportDiv.style.width = '840px';
+        exportDiv.style.height = '594px';
         exportDiv.style.boxSizing = 'border-box';
         exportDiv.style.margin = '0';
         exportDiv.style.padding = '0';
@@ -525,15 +525,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const issuerName = cert.issuer_name || '';
         const issuerTitle = cert.issuer_title || '';
 
-        const scaleFactor = 1.337;
-        const logoSize = Math.round((pos.logo && pos.logo.size ? pos.logo.size : 70) * scaleFactor);
-        const titleSize = Math.round((pos.title && pos.title.size ? pos.title.size : 34) * scaleFactor);
-        const subtitleSize = Math.round((pos.subtitle && pos.subtitle.size ? pos.subtitle.size : 17) * scaleFactor);
-        const recipientSize = Math.round((pos.recipient && pos.recipient.size ? pos.recipient.size : 28) * scaleFactor);
-        const bodySize = Math.round((pos.body && pos.body.size ? pos.body.size : 15) * scaleFactor);
-        const dateSize = Math.round((pos.date && pos.date.size ? pos.date.size : 14) * scaleFactor);
-        const signatureSize = Math.round((pos.signature && pos.signature.size ? pos.signature.size : 50) * scaleFactor);
-        const issuerSize = Math.round((pos.issuer && pos.issuer.size ? pos.issuer.size : 15) * scaleFactor);
+        const logoSize = pos.logo && pos.logo.size ? pos.logo.size : 70;
+        const titleSize = pos.title && pos.title.size ? pos.title.size : 34;
+        const subtitleSize = pos.subtitle && pos.subtitle.size ? pos.subtitle.size : 17;
+        const recipientSize = pos.recipient && pos.recipient.size ? pos.recipient.size : 28;
+        const bodySize = pos.body && pos.body.size ? pos.body.size : 15;
+        const dateSize = pos.date && pos.date.size ? pos.date.size : 14;
+        const signatureSize = pos.signature && pos.signature.size ? pos.signature.size : 50;
+        const issuerSize = pos.issuer && pos.issuer.size ? pos.issuer.size : 15;
         const issuerTitleSize = Math.round(issuerSize * 0.85);
 
         const logoHtml = cert.logo_url 
@@ -542,7 +541,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const signatureHtml = cert.signature_url 
             ? `<div style="position: absolute; left: ${pos.signature ? pos.signature.x : 50}%; top: ${pos.signature ? pos.signature.y : 79}%; transform: translate(-50%, -50%); text-align:center;">
-                 <img src="${cert.signature_url}" style="height: ${signatureSize}px; max-width: 320px; object-fit:contain;" alt="Signature">
+                 <img src="${cert.signature_url}" style="height: ${signatureSize}px; max-width: 260px; object-fit:contain;" alt="Signature">
                </div>` 
             : ``;
 
@@ -556,10 +555,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="position: absolute; left: ${pos.subtitle ? pos.subtitle.x : 50}%; top: ${pos.subtitle ? pos.subtitle.y : 35}%; transform: translate(-50%, -50%); font-family: 'Sarabun', 'Prompt', sans-serif; font-size: ${subtitleSize}px; color: #64748B; text-align:center; width: 100%; white-space: pre-line; word-break: break-word;">
                 ${escapeHtml(subtitleText)}
             </div>
-            <div style="position: absolute; left: ${pos.recipient ? pos.recipient.x : 50}%; top: ${pos.recipient ? pos.recipient.y : 45}%; transform: translate(-50%, -50%); font-family: 'Prompt', 'Sarabun', sans-serif; font-size: ${recipientSize}px; font-weight: 700; color: #4F46E5; border-bottom: 2px solid #C7D2FE; padding-bottom: 6px; min-width: 380px; text-align:center; white-space: pre-line; word-break: break-word;">
+            <div style="position: absolute; left: ${pos.recipient ? pos.recipient.x : 50}%; top: ${pos.recipient ? pos.recipient.y : 45}%; transform: translate(-50%, -50%); font-family: 'Prompt', 'Sarabun', sans-serif; font-size: ${recipientSize}px; font-weight: 700; color: #4F46E5; border-bottom: 2px solid #C7D2FE; padding-bottom: 4px; min-width: 280px; text-align:center; white-space: pre-line; word-break: break-word;">
                 ${escapeHtml(recipientText)}
             </div>
-            <div style="position: absolute; left: ${pos.body ? pos.body.x : 50}%; top: ${pos.body ? pos.body.y : 58}%; transform: translate(-50%, -50%); font-family: 'Sarabun', 'Prompt', sans-serif; font-size: ${bodySize}px; color: #334155; width: 840px; line-height: 1.7; text-align:center; white-space: pre-line; word-break: break-word;">
+            <div style="position: absolute; left: ${pos.body ? pos.body.x : 50}%; top: ${pos.body ? pos.body.y : 58}%; transform: translate(-50%, -50%); font-family: 'Sarabun', 'Prompt', sans-serif; font-size: ${bodySize}px; color: #334155; width: 620px; line-height: 1.6; text-align:center; white-space: pre-line; word-break: break-word;">
                 ${escapeHtml(bodyText)}
             </div>
             <div style="position: absolute; left: ${pos.date ? pos.date.x : 50}%; top: ${pos.date ? pos.date.y : 70}%; transform: translate(-50%, -50%); font-family: 'Sarabun', 'Prompt', sans-serif; font-size: ${dateSize}px; color: #64748B; text-align:center; width: 100%; white-space: pre-line; word-break: break-word;">
@@ -576,14 +575,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const canvas = await html2canvas(exportDiv, {
-                scale: 2,
+                scale: 2.857,
                 useCORS: true,
+                allowTaint: true,
                 logging: false,
-                width: 1123,
-                height: 794,
+                width: 840,
+                height: 594,
                 scrollX: 0,
                 scrollY: 0,
-                backgroundColor: '#FFFFFF'
+                backgroundColor: '#FFFFFF',
+                windowWidth: 840,
+                windowHeight: 594
             });
 
             if (document.body.contains(exportDiv)) {
