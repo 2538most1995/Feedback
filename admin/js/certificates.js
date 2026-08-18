@@ -272,33 +272,75 @@ function selectBgPreset(presetName, updateConfig = true) {
     }
 }
 
-function handleBgImageUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        certConfig.bg_image_url = ev.target.result;
-        certConfig.bg_preset = 'custom';
-        selectBgPreset('custom', true);
-        showToast('อัปโหลดรูปพื้นหลังสำเร็จ', 'success');
-    };
-    reader.readAsDataURL(file);
+// Client-side Image Compression Helper (< 50KB, preserves transparency for PNG)
+function compressImageFile(file, maxWidth, maxHeight, quality = 0.85, isPng = false) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                let w = img.width;
+                let h = img.height;
+                if (w > maxWidth || h > maxHeight) {
+                    if (w / h > maxWidth / maxHeight) {
+                        h = Math.round((h * maxWidth) / w);
+                        w = maxWidth;
+                    } else {
+                        w = Math.round((w * maxHeight) / h);
+                        h = maxHeight;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                const format = isPng ? 'image/png' : 'image/jpeg';
+                resolve(canvas.toDataURL(format, quality));
+            };
+            img.onerror = () => reject(new Error('ไม่สามารถอ่านไฟล์รูปภาพได้'));
+            img.src = e.target.result;
+        };
+        reader.onerror = (err) => reject(err);
+        reader.readAsDataURL(file);
+    });
 }
 
-function handleLogoUpload(e) {
+async function handleBgImageUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        certConfig.logo_url = ev.target.result;
-        document.getElementById('logoImg').src = certConfig.logo_url;
-        document.getElementById('logoImg').style.display = 'block';
-        document.getElementById('logoFallbackIcon').style.display = 'none';
-        showToast('อัปโหลดโลโก้สำเร็จ', 'success');
-    };
-    reader.readAsDataURL(file);
+    try {
+        const compressed = await compressImageFile(file, 1680, 1188, 0.82, false);
+        certConfig.bg_image_url = compressed;
+        certConfig.bg_preset = 'custom';
+        selectBgPreset('custom', true);
+        showToast('อัปโหลดรูปพื้นหลังสำเร็จ (พร้อมบันทึก)', 'success');
+    } catch (err) {
+        console.error('Upload bg error:', err);
+        showToast('ไม่สามารถประมวลผลรูปภาพได้', 'error');
+    }
+}
+
+async function handleLogoUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+        const compressed = await compressImageFile(file, 400, 400, 0.9, true);
+        certConfig.logo_url = compressed;
+        const logoImg = document.getElementById('logoImg');
+        const logoIcon = document.getElementById('logoFallbackIcon');
+        if (logoImg) {
+            logoImg.src = certConfig.logo_url;
+            logoImg.style.display = 'block';
+        }
+        if (logoIcon) logoIcon.style.display = 'none';
+        showToast('อัปโหลดโลโก้สำเร็จ (พร้อมบันทึก)', 'success');
+    } catch (err) {
+        console.error('Upload logo error:', err);
+        showToast('ไม่สามารถประมวลผลโลโก้ได้', 'error');
+    }
 }
 
 function updateLogoSize(val) {
@@ -324,22 +366,24 @@ function updateLogoSize(val) {
     }
 }
 
-function handleSignatureUpload(e) {
+async function handleSignatureUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        certConfig.signature_url = ev.target.result;
+    try {
+        const compressed = await compressImageFile(file, 600, 300, 0.9, true);
+        certConfig.signature_url = compressed;
         const sigImg = document.getElementById('signatureImg');
         const sigBox = document.getElementById('signatureImgBox');
         const sigFallback = document.getElementById('signatureFallbackBox');
         if (sigImg) sigImg.src = certConfig.signature_url;
         if (sigBox) sigBox.style.display = 'block';
         if (sigFallback) sigFallback.style.display = 'none';
-        showToast('อัปโหลดรูปลายเซ็นสำเร็จ', 'success');
-    };
-    reader.readAsDataURL(file);
+        showToast('อัปโหลดรูปลายเซ็นสำเร็จ (พร้อมบันทึก)', 'success');
+    } catch (err) {
+        console.error('Upload signature error:', err);
+        showToast('ไม่สามารถประมวลผลลายเซ็นได้', 'error');
+    }
 }
 
 function updateSignatureSize(val) {
@@ -1035,6 +1079,14 @@ async function previewCertificatePdf() {
         el.style.boxShadow = 'none';
     });
 
+    // Remove empty/hidden image tags so html2canvas doesn't fail on empty sources
+    clone.querySelectorAll('img').forEach(img => {
+        const s = img.getAttribute('src');
+        if (!s || s.trim() === '' || s === '#' || img.style.display === 'none') {
+            img.remove();
+        }
+    });
+
     // Reset zoom transform and enforce pristine unscaled 840x594 A4 Landscape aspect ratio
     clone.style.position = 'fixed';
     clone.style.left = '-99999px';
@@ -1053,6 +1105,10 @@ async function previewCertificatePdf() {
     try {
         if (typeof html2canvas === 'undefined') {
             throw new Error('ไม่พบไลบรารี html2canvas ในระบบ');
+        }
+
+        if (document.fonts && document.fonts.ready) {
+            await document.fonts.ready;
         }
 
         // Render at 300 DPI high-definition scale (840 * 2.857 = 2400px x 1697px)

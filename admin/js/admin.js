@@ -151,7 +151,7 @@ function showToast(message, type = 'success') {
     }
 
     const toast = document.createElement('div');
-    toast.className = 'toast';
+    toast.className = `toast toast-${type}`;
 
     const iconMap = {
         success: 'fas fa-check-circle',
@@ -166,11 +166,17 @@ function showToast(message, type = 'success') {
     `;
 
     container.appendChild(toast);
-    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // Force reflow before adding show class
+    void toast.offsetWidth;
+    toast.classList.add('show');
+
     setTimeout(() => {
         toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
+        setTimeout(() => {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 350);
+    }, 3800);
 }
 
 // Confirmation modal
@@ -202,6 +208,17 @@ function showConfirm(message, onConfirm) {
     });
 }
 
+// HTML Escaper helper
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 // API helper with session credentials
 async function api(endpoint, method = 'GET', body = null) {
     try {
@@ -213,7 +230,12 @@ async function api(endpoint, method = 'GET', body = null) {
         if (body) options.body = JSON.stringify(body);
 
         const response = await fetch(endpoint, options);
-        const json = await response.json();
+        let json;
+        try {
+            json = await response.json();
+        } catch (e) {
+            json = { success: response.ok, message: response.statusText, data: null };
+        }
 
         if (!response.ok && response.status === 401) {
             window.location.href = 'login.html';
@@ -286,33 +308,45 @@ function setButtonLoading(btn, isLoading, loadingText = 'กำลังดำ�
 }
 
 // Inline Validation helpers
-function showFieldError(inputEl, message) {
+function showFieldError(inputEl, message, customErrorId = null) {
     if (!inputEl) return;
     inputEl.classList.remove('is-valid');
     inputEl.classList.add('is-invalid');
     
-    let feedback = inputEl.parentNode.querySelector('.invalid-feedback');
+    let feedback = customErrorId ? document.getElementById(customErrorId) : null;
     if (!feedback) {
-        feedback = document.createElement('div');
-        feedback.className = 'invalid-feedback';
-        inputEl.parentNode.appendChild(feedback);
+        const formGroup = inputEl.closest('.form-group') || inputEl.parentNode;
+        feedback = formGroup.querySelector('.invalid-feedback');
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.className = 'invalid-feedback';
+            formGroup.appendChild(feedback);
+        }
     }
-    feedback.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+    feedback.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${escapeHtml(message)}`;
     feedback.style.display = 'flex';
 }
 
-function clearFieldError(inputEl) {
+function clearFieldError(inputEl, customErrorId = null) {
     if (!inputEl) return;
     inputEl.classList.remove('is-invalid');
-    const feedback = inputEl.parentNode.querySelector('.invalid-feedback');
+    let feedback = customErrorId ? document.getElementById(customErrorId) : null;
+    if (!feedback) {
+        const formGroup = inputEl.closest('.form-group') || inputEl.parentNode;
+        feedback = formGroup.querySelector('.invalid-feedback');
+    }
     if (feedback) feedback.style.display = 'none';
 }
 
-function markFieldValid(inputEl) {
+function markFieldValid(inputEl, customErrorId = null) {
     if (!inputEl) return;
     inputEl.classList.remove('is-invalid');
     inputEl.classList.add('is-valid');
-    const feedback = inputEl.parentNode.querySelector('.invalid-feedback');
+    let feedback = customErrorId ? document.getElementById(customErrorId) : null;
+    if (!feedback) {
+        const formGroup = inputEl.closest('.form-group') || inputEl.parentNode;
+        feedback = formGroup.querySelector('.invalid-feedback');
+    }
     if (feedback) feedback.style.display = 'none';
 }
 
