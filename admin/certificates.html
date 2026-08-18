@@ -475,23 +475,21 @@
                 </div>
                 <div class="header-right">
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <button type="button" class="btn btn-outline" onclick="previewCertificatePdf()"><i class="fas fa-file-pdf"></i> พรีวิว PDF</button>
-                        <button type="button" class="btn btn-primary" onclick="saveCertificateConfig()"><i class="fas fa-save"></i> บันทึกการตั้งค่า</button>
+                        <button type="button" class="btn btn-outline" id="previewCertBtn" onclick="previewCertificatePdf()"><i class="fas fa-file-pdf"></i> <span>พรีวิว PDF</span></button>
+                        <button type="button" class="btn btn-primary" id="saveCertBtn" onclick="saveCertificateConfig()"><i class="fas fa-save"></i> <span>บันทึกการตั้งค่า</span></button>
                     </div>
                 </div>
             </header>
 
-            <div class="content-area animate-fade">
+            <div class="content-area animate-fade has-sticky-bar">
                 <!-- Select Survey Bar -->
                 <div class="card" style="margin-bottom: 20px; padding: 16px 20px;">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
                         <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 280px;">
                             <i class="fas fa-clipboard-list fa-lg" style="color: var(--primary);"></i>
-                            <div style="flex: 1;">
+                            <div style="flex: 1;" id="certSurveyComboboxContainer">
                                 <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-light); display: block; margin-bottom: 4px;">เลือกแบบประเมินที่ต้องการเปิดออกเกียรติบัตร</label>
-                                <select class="form-control" id="surveySelector" onchange="onSurveyChange()" style="font-weight: 600; font-size: 0.95rem;">
-                                    <option value="">-- กำลังโหลดรายการแบบประเมิน... --</option>
-                                </select>
+                                <div class="skeleton" style="height: 44px; width: 100%;"></div>
                             </div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 12px; background: #F8FAFC; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);">
@@ -797,12 +795,22 @@
         </main>
     </div>
 
+    <!-- Mobile Sticky Action Bar -->
+    <div class="sticky-action-bar">
+        <button type="button" class="btn btn-outline" id="mobilePreviewCertBtn" onclick="previewCertificatePdf()">
+            <i class="fas fa-file-pdf"></i> <span>พรีวิว PDF</span>
+        </button>
+        <button type="button" class="btn btn-primary" id="mobileSaveCertBtn" onclick="saveCertificateConfig()">
+            <i class="fas fa-save"></i> <span>บันทึกการตั้งค่า</span>
+        </button>
+    </div>
+
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- Scripts: html2canvas & jsPDF for 100% Full-bleed A4 PDF Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="js/admin.js?v=2.2"></script>
+    <script src="js/admin.js?v=2.3"></script>
     <script src="js/certificates.js?v=3.0"></script>
 </body>
 </html>

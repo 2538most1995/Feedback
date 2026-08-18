@@ -287,6 +287,16 @@
         </main>
     </div>
 
+    <!-- Mobile Sticky Action Bar -->
+    <div class="sticky-action-bar">
+        <button type="button" class="btn btn-outline" onclick="openImportModal()">
+            <i class="fas fa-file-import"></i> <span>นำเข้า</span>
+        </button>
+        <a href="survey-edit.html" class="btn btn-primary">
+            <i class="fas fa-plus"></i> <span>สร้างแบบประเมิน</span>
+        </a>
+    </div>
+
     <!-- Import Survey Modal (Excel / JSON) -->
     <div class="modal-backdrop" id="importModal">
         <div class="modal-content" style="max-width: 680px;">
@@ -473,9 +483,10 @@
             const tbody = document.getElementById('surveysList');
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-light);">
-                        <i class="fas fa-spinner fa-spin fa-2x" style="color: var(--primary); margin-bottom: 0.5rem; display:block;"></i>
-                        กำลังโหลดข้อมูลแบบประเมิน...
+                    <td colspan="7" style="padding: 16px 20px;">
+                        <div class="skeleton-row"><div class="skeleton skeleton-title" style="width: 45%;"></div></div>
+                        <div class="skeleton-row"><div class="skeleton skeleton-title" style="width: 60%;"></div></div>
+                        <div class="skeleton-row"><div class="skeleton skeleton-title" style="width: 35%;"></div></div>
                     </td>
                 </tr>`;
 
@@ -485,11 +496,11 @@
                     allSurveys = res.data || [];
                     renderSurveys(allSurveys);
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="7" class="empty-table-state"><i class="fas fa-exclamation-circle" style="color:var(--error);"></i><p>ไม่สามารถโหลดข้อมูลแบบประเมินได้</p></td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="7">${getEmptyStateHtml({ icon: 'fas fa-exclamation-triangle', title: 'ไม่สามารถโหลดข้อมูลได้', desc: res ? res.message : '', actionText: 'ลองใหม่', actionOnClick: 'loadSurveys()', actionIcon: 'fas fa-redo' })}</td></tr>`;
                 }
             } catch (err) {
                 console.error('Error fetching surveys:', err);
-                tbody.innerHTML = `<tr><td colspan="7" class="empty-table-state"><i class="fas fa-wifi" style="color:var(--error);"></i><p>เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์</p></td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7">${getEmptyStateHtml({ icon: 'fas fa-wifi', title: 'เกิดข้อผิดพลาดในการเชื่อมต่อ', desc: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้', actionText: 'ลองใหม่', actionOnClick: 'loadSurveys()', actionIcon: 'fas fa-redo' })}</td></tr>`;
             }
         }
 
@@ -515,15 +526,15 @@
             if (!surveys || surveys.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7">
-                            <div class="empty-table-state">
-                                <i class="fas fa-folder-open"></i>
-                                <h3>ไม่พบแบบประเมิน</h3>
-                                <p>ไม่พบรายการแบบประเมินที่ตรงกับเงื่อนไขการค้นหา</p>
-                                <a href="survey-edit.html" class="btn btn-primary" style="margin-top: 12px; display:inline-flex;">
-                                    <i class="fas fa-plus"></i> สร้างแบบประเมินใหม่
-                                </a>
-                            </div>
+                        <td colspan="7" style="padding: 10px;">
+                            ${getEmptyStateHtml({
+                                icon: 'fas fa-folder-open',
+                                title: 'ไม่พบแบบประเมิน',
+                                desc: 'ไม่พบแบบประเมินที่ตรงกับคำค้นหา หรือยังไม่มีแบบประเมินในระบบ',
+                                actionText: 'สร้างแบบประเมินใหม่',
+                                actionOnClick: "location.href='survey-edit.html'",
+                                actionIcon: 'fas fa-plus'
+                            })}
                         </td>
                     </tr>`;
                 return;

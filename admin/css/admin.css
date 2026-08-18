@@ -794,28 +794,412 @@ select.form-control {
 .modal-body { padding: 20px 24px; }
 .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 
-/* Toasts */
-.toast-container { position: fixed; top: 20px; right: 20px; z-index: 1100; display: flex; flex-direction: column; gap: 10px; max-width: calc(100vw - 40px); }
-.toast {
-  background: var(--card);
-  border-radius: 10px;
-  padding: 14px 18px;
-  box-shadow: var(--shadow-lg);
+/* ==========================================================================
+   Inline Validation Styles
+   ========================================================================== */
+.form-group {
+  position: relative;
+}
+
+.form-control.is-invalid {
+  border-color: var(--error) !important;
+  background-color: #FEF2F2 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+}
+
+.form-control.is-valid {
+  border-color: var(--success) !important;
+  background-color: #F0FDF4 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+}
+
+.invalid-feedback {
+  display: none;
+  font-size: 0.8rem;
+  color: var(--error);
+  margin-top: 5px;
+  font-weight: 500;
+  align-items: center;
+  gap: 5px;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.form-control.is-invalid ~ .invalid-feedback,
+.is-invalid .invalid-feedback {
+  display: flex;
+}
+
+.valid-feedback {
+  display: none;
+  font-size: 0.8rem;
+  color: var(--success);
+  margin-top: 5px;
+  font-weight: 500;
+  align-items: center;
+  gap: 5px;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.form-control.is-valid ~ .valid-feedback,
+.is-valid .valid-feedback {
+  display: flex;
+}
+
+/* ==========================================================================
+   Loading & Skeleton Shimmer States
+   ========================================================================== */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #E2E8F0 25%, #F1F5F9 50%, #E2E8F0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.skeleton-text {
+  height: 14px;
+  width: 100%;
+  margin-bottom: 6px;
+  border-radius: 4px;
+}
+
+.skeleton-title {
+  height: 22px;
+  width: 60%;
+  margin-bottom: 10px;
+  border-radius: 6px;
+}
+
+.skeleton-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 280px;
-  border: 1px solid var(--border);
-  transform: translateX(120%);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
 }
-.toast.show { transform: translateX(0); }
-.toast-icon { font-size: 1.25rem; }
-.toast-icon.success { color: var(--success); }
-.toast-icon.error { color: var(--error); }
-.toast-icon.warning { color: var(--accent); }
-.toast-icon.info { color: var(--primary); }
-.toast-message { font-size: 0.875rem; font-weight: 500; }
+
+.btn.is-loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.btn.is-loading .btn-text {
+  visibility: hidden;
+}
+
+.btn.is-loading::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  top: 50%;
+  left: 50%;
+  margin-top: -9px;
+  margin-left: -9px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #FFFFFF;
+  animation: spin 0.7s linear infinite;
+}
+
+.btn-outline.is-loading::after {
+  border: 2.5px solid rgba(79, 70, 229, 0.2);
+  border-top-color: var(--primary);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   Empty State Component
+   ========================================================================== */
+.empty-state-card {
+  text-align: center;
+  padding: 48px 24px;
+  background: #FFFFFF;
+  border-radius: 14px;
+  border: 1.5px dashed #CBD5E1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 16px 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.empty-state-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #EEF2FF;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
+}
+
+.empty-state-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.empty-state-desc {
+  font-size: 0.875rem;
+  color: var(--text-light);
+  max-width: 400px;
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+.empty-state-action {
+  display: inline-flex;
+}
+
+/* ==========================================================================
+   Searchable Combobox Component
+   ========================================================================== */
+.combobox {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.combobox-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #FFFFFF;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text);
+  transition: all 0.2s ease;
+  min-height: 44px;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.combobox-btn:hover {
+  border-color: #CBD5E1;
+  background: #F8FAFC;
+}
+
+.combobox.open .combobox-btn {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.combobox-selected-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.combobox-selected-text.placeholder {
+  color: var(--text-light);
+  font-weight: normal;
+}
+
+.combobox-badge {
+  background: #EEF2FF;
+  color: var(--primary);
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.combobox-arrow {
+  color: var(--text-light);
+  font-size: 0.85rem;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.combobox.open .combobox-arrow {
+  transform: rotate(180deg);
+  color: var(--primary);
+}
+
+.combobox-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  min-width: 280px;
+  max-width: 100vw;
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  z-index: 950;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.2s ease;
+  box-sizing: border-box;
+}
+
+.combobox.open .combobox-dropdown {
+  display: flex;
+}
+
+.combobox-search-box {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: #F8FAFC;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.combobox-search-box i {
+  position: absolute;
+  left: 22px;
+  color: var(--text-light);
+  font-size: 0.85rem;
+}
+
+.combobox-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  background: white;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.combobox-search-input:focus {
+  border-color: var(--primary);
+}
+
+.combobox-options {
+  max-height: 240px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 6px 0;
+}
+
+.combobox-item {
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 0.875rem;
+}
+
+.combobox-item:hover, .combobox-item.focused {
+  background: #F1F5F9;
+}
+
+.combobox-item.selected {
+  background: #EEF2FF;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.combobox-item-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.combobox-empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-light);
+  font-size: 0.85rem;
+}
+
+/* ==========================================================================
+   Sticky Action Bar on Mobile
+   ========================================================================== */
+.sticky-action-bar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sticky-action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 850;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid var(--border);
+    padding: 10px 14px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+    box-sizing: border-box;
+  }
+
+  .sticky-action-bar .btn {
+    flex: 1;
+    min-height: 44px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    justify-content: center;
+    white-space: nowrap;
+  }
+
+  .content-area.has-sticky-bar {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+}
 
 /* Responsive Media Queries (iPad, Tablets, Mobile Phones) */
 

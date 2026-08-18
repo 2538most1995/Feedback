@@ -51,56 +51,63 @@ document.addEventListener('DOMContentLoaded', () => {
     initInlineEditing();
 });
 
+let certSurveyCombobox = null;
+
 // Load all surveys for selector
 async function loadSurveysList() {
-    const selector = document.getElementById('surveySelector');
-    if (!selector) return;
-
-    selector.innerHTML = `<option value="">กำลังโหลดรายการแบบประเมิน...</option>`;
+    const container = document.getElementById('certSurveyComboboxContainer');
+    if (!container) return;
 
     try {
         const res = await api('../api/surveys.php');
         if (res && res.success) {
             allSurveys = res.data || [];
             if (allSurveys.length === 0) {
-                selector.innerHTML = `<option value="">-- ยังไม่มีแบบประเมินในระบบ --</option>`;
+                container.innerHTML = `<label style="font-size: 0.8rem; font-weight: 600; color: var(--text-light); display: block; margin-bottom: 4px;">เลือกแบบประเมินที่ต้องการเปิดออกเกียรติบัตร</label><div class="form-control" style="color:var(--text-light);">-- ยังไม่มีแบบประเมินในระบบ --</div>`;
                 return;
             }
 
             const urlParams = new URLSearchParams(window.location.search);
             const paramSurveyId = urlParams.get('survey_id');
+            const initialId = paramSurveyId && allSurveys.some(s => s.id == paramSurveyId) ? paramSurveyId : allSurveys[0].id;
 
-            selector.innerHTML = allSurveys.map(s => {
+            const options = allSurveys.map(s => {
                 const statusText = s.status === 'published' ? 'เผยแพร่' : (s.status === 'closed' ? 'ปิดรับ' : 'ร่าง');
-                return `<option value="${s.id}">${escapeHtml(s.title)} [${statusText}]</option>`;
-            }).join('');
+                return {
+                    id: s.id,
+                    title: s.title,
+                    badge: statusText
+                };
+            });
 
-            if (paramSurveyId && allSurveys.some(s => s.id == paramSurveyId)) {
-                selector.value = paramSurveyId;
-            } else {
-                selector.value = allSurveys[0].id;
-            }
+            container.innerHTML = `<label style="font-size: 0.8rem; font-weight: 600; color: var(--text-light); display: block; margin-bottom: 4px;">เลือกแบบประเมินที่ต้องการเปิดออกเกียรติบัตร</label><div id="certComboboxInner"></div>`;
 
-            onSurveyChange();
-        } else {
-            selector.innerHTML = `<option value="">ไม่สามารถโหลดรายการแบบประเมินได้ (${res ? res.message : 'เกิดข้อผิดพลาด'})</option>`;
+            certSurveyCombobox = createCombobox({
+                container: '#certComboboxInner',
+                options: options,
+                value: String(initialId),
+                placeholder: '-- เลือกแบบประเมิน --',
+                searchPlaceholder: '🔍 ค้นหาแบบประเมิน...',
+                onChange: (selectedId) => {
+                    if (selectedId) {
+                        currentSurveyId = parseInt(selectedId);
+                        loadCertConfigForSurvey(currentSurveyId);
+                    }
+                }
+            });
+
+            currentSurveyId = parseInt(initialId);
+            loadCertConfigForSurvey(currentSurveyId);
         }
     } catch (err) {
         console.error('Error loading surveys:', err);
-        selector.innerHTML = `<option value="">เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์</option>`;
     }
 }
 
-async function onSurveyChange() {
-    const selector = document.getElementById('surveySelector');
-    if (!selector || !selector.value) return;
-
-    currentSurveyId = parseInt(selector.value);
-    if (!currentSurveyId) return;
-
-    // Load cert config for this survey
+async function loadCertConfigForSurvey(surveyId) {
+    if (!surveyId) return;
     try {
-        const res = await api(`../api/certificates.php?survey_id=${currentSurveyId}`);
+        const res = await api(`../api/certificates.php?survey_id=${surveyId}`);
         if (res && res.success && res.data) {
             const data = res.data;
             const mergedElements = {
@@ -945,14 +952,23 @@ async function saveCertificateConfig() {
         elements_config: certConfig.elements_config
     };
 
+    const saveBtn = document.getElementById('saveCertBtn');
+    const mobileSaveBtn = document.getElementById('mobileSaveCertBtn');
+    setButtonLoading(saveBtn, true, 'กำลังบันทึก...');
+    setButtonLoading(mobileSaveBtn, true, 'กำลังบันทึก...');
+
     try {
         const res = await api('../api/certificates.php', 'POST', payload);
+        setButtonLoading(saveBtn, false);
+        setButtonLoading(mobileSaveBtn, false);
         if (res && res.success) {
             showToast('บันทึกการตั้งค่าเกียรติบัตรสำเร็จ!', 'success');
         } else {
             showToast(res ? res.message : 'ไม่สามารถบันทึกข้อมูลได้', 'error');
         }
     } catch (err) {
+        setButtonLoading(saveBtn, false);
+        setButtonLoading(mobileSaveBtn, false);
         console.error('Save cert error:', err);
         showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
     }
@@ -965,7 +981,10 @@ async function previewCertificatePdf() {
         return;
     }
 
-    showToast('กำลังสร้าง PDF เกียรติบัตรเต็มหน้ากระดาษ A4...', 'info');
+    const previewBtn = document.getElementById('previewCertBtn');
+    const mobilePreviewBtn = document.getElementById('mobilePreviewCertBtn');
+    setButtonLoading(previewBtn, true, 'กำลังสร้าง PDF...');
+    setButtonLoading(mobilePreviewBtn, true, 'สร้าง PDF...');
 
     const exportDiv = document.createElement('div');
     exportDiv.style.position = 'fixed';
@@ -1075,8 +1094,12 @@ async function previewCertificatePdf() {
         pdf.save(`Certificate_Preview_${currentSurveyId}.pdf`);
 
         document.body.removeChild(exportDiv);
+        setButtonLoading(previewBtn, false);
+        setButtonLoading(mobilePreviewBtn, false);
         showToast('ดาวน์โหลดไฟล์ PDF เต็มหน้ากระดาษ A4 สำเร็จ', 'success');
     } catch (err) {
+        setButtonLoading(previewBtn, false);
+        setButtonLoading(mobilePreviewBtn, false);
         console.error('PDF error:', err);
         if (document.body.contains(exportDiv)) {
             document.body.removeChild(exportDiv);

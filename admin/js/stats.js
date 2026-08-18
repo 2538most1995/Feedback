@@ -2,10 +2,10 @@
 
 let currentSurveyId = null;
 let currentStatsData = null;
+let surveyCombobox = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
-    loadSurveySelector();
 
     // Check if survey ID is in URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -13,31 +13,57 @@ document.addEventListener('DOMContentLoaded', () => {
     if (urlId) {
         currentSurveyId = urlId;
     }
+
+    renderInitialEmptyState();
+    loadSurveySelector();
 });
 
+function renderInitialEmptyState() {
+    const emptyStateContainer = document.getElementById('emptyStatsState');
+    if (emptyStateContainer) {
+        emptyStateContainer.innerHTML = getEmptyStateHtml({
+            icon: 'fas fa-chart-pie',
+            title: 'เลือกแบบประเมินเพื่อดูรายงานสถิติ',
+            desc: 'กรุณาเลือกแบบประเมินจากแถบด้านบน เพื่อแสดงผลวิเคราะห์คะแนน แผนภูมิ และสรุปข้อมูลสถิติ',
+            actionText: 'จัดการแบบประเมิน',
+            actionOnClick: "location.href='surveys.html'",
+            actionIcon: 'fas fa-clipboard-list'
+        });
+    }
+}
+
 async function loadSurveySelector() {
-    const selector = document.getElementById('surveySelector');
-    if (!selector) return;
+    const container = document.getElementById('surveyComboboxContainer');
+    if (!container) return;
 
     try {
         const res = await api('../api/surveys.php');
         if (res && res.success && res.data) {
-            selector.innerHTML = '<option value="">-- เลือกแบบประเมิน --</option>';
-            res.data.forEach(s => {
-                const selected = currentSurveyId == s.id ? 'selected' : '';
-                selector.innerHTML += `<option value="${s.id}" ${selected}>${s.title} (${s.response_count || 0} คำตอบ)</option>`;
-            });
+            const surveyOptions = res.data.map(s => ({
+                id: s.id,
+                title: s.title,
+                category: s.category || 'ทั่วไป',
+                badge: `${s.response_count || 0} คำตอบ`
+            }));
 
-            selector.addEventListener('change', () => {
-                currentSurveyId = selector.value;
-                if (currentSurveyId) {
-                    loadSurveyStats(currentSurveyId);
+            surveyCombobox = createCombobox({
+                container: '#surveyComboboxContainer',
+                options: surveyOptions,
+                value: currentSurveyId,
+                placeholder: '-- เลือกแบบประเมินเพื่อดูรายงานผล --',
+                searchPlaceholder: '🔍 พิมพ์ค้นหาชื่อแบบประเมิน...',
+                onChange: (selectedId) => {
+                    currentSurveyId = selectedId;
+                    if (currentSurveyId) {
+                        loadSurveyStats(currentSurveyId);
+                    } else {
+                        hideStatsAndShowEmpty();
+                    }
                 }
             });
 
-            // Load initial stats if survey ID set
+            // Load initial stats if survey ID is preset
             if (currentSurveyId) {
-                selector.value = currentSurveyId;
                 loadSurveyStats(currentSurveyId);
             }
         }
@@ -46,45 +72,118 @@ async function loadSurveySelector() {
     }
 }
 
+function hideStatsAndShowEmpty() {
+    const statsArea = document.getElementById('statsArea');
+    const emptyState = document.getElementById('emptyStatsState');
+    const skeleton = document.getElementById('statsLoadingSkeleton');
+    const exportBtn = document.getElementById('exportExcelBtn');
+    const mobileStickyBar = document.getElementById('statsMobileStickyBar');
+
+    if (statsArea) statsArea.style.display = 'none';
+    if (skeleton) skeleton.style.display = 'none';
+    if (emptyState) {
+        emptyState.style.display = 'block';
+        renderInitialEmptyState();
+    }
+    if (exportBtn) exportBtn.disabled = true;
+    if (mobileStickyBar) mobileStickyBar.style.display = 'none';
+}
+
 async function loadSurveyStats(surveyId) {
     const statsArea = document.getElementById('statsArea');
+    const emptyState = document.getElementById('emptyStatsState');
+    const skeleton = document.getElementById('statsLoadingSkeleton');
+    const exportBtn = document.getElementById('exportExcelBtn');
+    const mobileStickyBar = document.getElementById('statsMobileStickyBar');
+
     if (!statsArea) return;
+
+    // Show loading skeleton
+    statsArea.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'none';
+    if (skeleton) skeleton.style.display = 'block';
+    if (exportBtn) exportBtn.disabled = true;
+    if (mobileStickyBar) mobileStickyBar.style.display = 'none';
 
     try {
         const res = await api(`../api/stats.php?type=survey&id=${surveyId}`);
-        if (!res || !res.success) {
-            showToast('ไม่สามารถโหลดข้อมูลสถิติได้', 'error');
+        if (skeleton) skeleton.style.display = 'none';
+
+        if (!res || !res.success || !res.data) {
+            if (emptyState) {
+                emptyState.style.display = 'block';
+                emptyState.innerHTML = getEmptyStateHtml({
+                    icon: 'fas fa-exclamation-triangle',
+                    title: 'ไม่สามารถโหลดข้อมูลสถิติได้',
+                    desc: res ? res.message : 'เกิดข้อผิดพลาดในการดึงข้อมูลจากเซิร์ฟเวอร์',
+                    actionText: 'ลองใหม่อีกครั้ง',
+                    actionOnClick: `loadSurveyStats(${surveyId})`,
+                    actionIcon: 'fas fa-sync-alt'
+                });
+            }
             return;
         }
 
         currentStatsData = res.data;
         const data = res.data;
+
+        // Check if 0 responses
+        if (!data.total_responses || data.total_responses == 0) {
+            if (emptyState) {
+                emptyState.style.display = 'block';
+                emptyState.innerHTML = getEmptyStateHtml({
+                    icon: 'fas fa-inbox',
+                    title: 'ยังไม่มีผู้ตอบแบบประเมินนี้',
+                    desc: 'ยังไม่มีการบันทึกคำตอบสำหรับแบบประเมินนี้ คุณสามารถแชร์ลิงก์หรือ QR Code เพื่อเริ่มเก็บข้อมูลได้',
+                    actionText: 'ดูแบบประเมิน / ทำแบบทดสอบ',
+                    actionOnClick: `window.open('../survey.html?id=${surveyId}', '_blank')`,
+                    actionIcon: 'fas fa-external-link-alt'
+                });
+            }
+            return;
+        }
+
+        // Show stats content
         statsArea.style.display = 'block';
+        if (exportBtn) exportBtn.disabled = false;
+        if (mobileStickyBar) mobileStickyBar.style.display = 'flex';
 
         // Update overview cards
         const totalEl = document.getElementById('statsTotalResponses');
         const avgEl = document.getElementById('statsAvgRating');
-        if (totalEl) totalEl.textContent = data.total_responses || 0;
-        if (avgEl) avgEl.textContent = parseFloat(data.avg_rating || 0).toFixed(2);
+        if (totalEl) totalEl.textContent = (data.total_responses || 0).toLocaleString();
+        if (avgEl) avgEl.innerHTML = `${parseFloat(data.avg_rating || 0).toFixed(2)} <span class="stat-unit">/ 5.00</span>`;
 
-        // Find highest/lowest
+        // Find highest/lowest questions
         const questions = data.questions || [];
         if (questions.length > 0) {
-            const sorted = [...questions].sort((a, b) => parseFloat(b.avg_rating) - parseFloat(a.avg_rating));
+            const sorted = [...questions].sort((a, b) => parseFloat(b.avg_rating || 0) - parseFloat(a.avg_rating || 0));
             const highEl = document.getElementById('statsHighest');
             const lowEl = document.getElementById('statsLowest');
-            if (highEl) highEl.textContent = sorted[0].question_text + ' (' + parseFloat(sorted[0].avg_rating).toFixed(2) + ')';
-            if (lowEl) lowEl.textContent = sorted[sorted.length - 1].question_text + ' (' + parseFloat(sorted[sorted.length - 1].avg_rating).toFixed(2) + ')';
+            if (highEl) highEl.innerHTML = `${sorted[0].question_text} <strong style="color:var(--success);">(${parseFloat(sorted[0].avg_rating || 0).toFixed(2)})</strong>`;
+            if (lowEl) lowEl.innerHTML = `${sorted[sorted.length - 1].question_text} <strong style="color:var(--error);">(${parseFloat(sorted[sorted.length - 1].avg_rating || 0).toFixed(2)})</strong>`;
         }
 
         // Render charts
-        renderDonutChart(data.distribution);
-        renderBarChart(data.questions);
+        renderDonutChart(data.distribution || {});
+        renderBarChart(data.questions || []);
         renderDemographicCharts(data);
-        renderQuestionTable(data.questions);
+        renderQuestionTable(data.questions || []);
 
     } catch (err) {
+        if (skeleton) skeleton.style.display = 'none';
         console.error('Error loading stats:', err);
+        if (emptyState) {
+            emptyState.style.display = 'block';
+            emptyState.innerHTML = getEmptyStateHtml({
+                icon: 'fas fa-wifi',
+                title: 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
+                desc: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต',
+                actionText: 'ลองใหม่',
+                actionOnClick: `loadSurveyStats(${surveyId})`,
+                actionIcon: 'fas fa-redo'
+            });
+        }
     }
 }
 

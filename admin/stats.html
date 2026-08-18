@@ -2,37 +2,58 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>รายงานผลสถิติ - ระบบประเมินความพึงพอใจ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/admin.css?v=2.2">
+    <link rel="stylesheet" href="css/admin.css?v=2.3">
     <style>
-        .stats-header-controls {
+        .stats-filter-card {
+            background: #FFFFFF;
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
             display: flex;
-            gap: 10px;
             align-items: center;
+            justify-content: space-between;
+            gap: 16px;
             flex-wrap: wrap;
+        }
+        .stats-selector-box {
+            flex: 1;
+            min-width: 260px;
+            max-width: 100%;
         }
         .demographics-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 20px;
         }
         @media (max-width: 1024px) {
             .demographics-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
+            .stats-filter-card {
+                padding: 14px;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            .stats-selector-box {
+                width: 100%;
+                min-width: 0;
+            }
+            .stats-filter-card .btn {
+                width: 100%;
+                justify-content: center;
+            }
             .demographics-grid {
-                grid-template-columns: 1fr;
-            }
-            .stats-header-controls {
-                width: 100%;
-            }
-            .stats-header-controls select,
-            .stats-header-controls button {
-                width: 100%;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 14px;
             }
         }
     </style>
@@ -83,23 +104,51 @@
                     <h1 class="page-title">รายงานผลและสถิติ</h1>
                 </div>
                 <div class="header-right">
-                    <div class="stats-header-controls">
-                        <select class="form-control" style="min-width: 220px;" id="surveySelector">
-                            <option value="">-- เลือกแบบประเมิน --</option>
-                        </select>
-                        <button class="btn btn-primary" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> ส่งออก Excel</button>
-                    </div>
+                    <div class="date-display" id="currentDate">--</div>
                 </div>
             </header>
 
-            <div class="content-area animate-fade">
+            <div class="content-area animate-fade has-sticky-bar">
+                <!-- Toolbar / Combobox Selector Card -->
+                <div class="stats-filter-card">
+                    <div class="stats-selector-box">
+                        <label class="form-label" style="font-size: 0.8rem; color: var(--text-light); margin-bottom: 6px;">
+                            <i class="fas fa-list-check" style="color: var(--primary); margin-right: 4px;"></i> เลือกแบบประเมินที่ต้องการดูรายงานผล
+                        </label>
+                        <div id="surveyComboboxContainer">
+                            <!-- Populated via Combobox JS -->
+                            <div class="skeleton" style="height: 44px; width: 100%;"></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: flex-end;">
+                        <button type="button" class="btn btn-primary" id="exportExcelBtn" onclick="exportToExcel()" disabled>
+                            <i class="fas fa-file-excel"></i> <span>ส่งออก Excel</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading Skeleton State -->
+                <div id="statsLoadingSkeleton" style="display:none;">
+                    <div class="stats-grid" style="margin-bottom: 20px;">
+                        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text" style="width:40%;"></div></div>
+                        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text" style="width:40%;"></div></div>
+                        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text" style="width:40%;"></div></div>
+                        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text" style="width:40%;"></div></div>
+                    </div>
+                    <div class="card" style="padding: 24px;">
+                        <div class="skeleton skeleton-title" style="width: 30%;"></div>
+                        <div class="skeleton skeleton-text" style="height: 200px; margin-top: 16px;"></div>
+                    </div>
+                </div>
+
+                <!-- Main Stats Area -->
                 <div id="statsArea" style="display:none;">
                     <!-- Overview Stats -->
                     <div class="stats-grid">
                         <div class="stat-card bg-light-blue">
                             <div class="stat-icon primary"><i class="fas fa-users"></i></div>
                             <div class="stat-info">
-                                <div class="stat-label">จำนวนผู้ตอบ</div>
+                                <div class="stat-label">จำนวนผู้ตอบทั้งหมด</div>
                                 <div class="stat-value" id="statsTotalResponses">0 <span class="stat-unit">คน</span></div>
                             </div>
                         </div>
@@ -129,34 +178,46 @@
                     <!-- Charts Row 1: Bar + Donut -->
                     <div class="dashboard-grid">
                         <div class="card">
-                            <h3 class="card-title"><i class="fas fa-chart-bar" style="color:var(--primary);margin-right:8px;"></i>คะแนนเฉลี่ยรายข้อ</h3>
-                            <div style="height: 300px; width: 100%; position: relative;"><canvas id="barChart"></canvas></div>
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="fas fa-chart-bar" style="color:var(--primary);margin-right:8px;"></i>คะแนนเฉลี่ยรายข้อ</h3>
+                            </div>
+                            <div style="height: 280px; width: 100%; position: relative;"><canvas id="barChart"></canvas></div>
                         </div>
                         <div class="card">
-                            <h3 class="card-title"><i class="fas fa-chart-pie" style="color:var(--primary);margin-right:8px;"></i>การกระจายคะแนน</h3>
-                            <div style="height: 300px; width: 100%; position: relative;"><canvas id="donutChart"></canvas></div>
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="fas fa-chart-pie" style="color:var(--primary);margin-right:8px;"></i>การกระจายคะแนน</h3>
+                            </div>
+                            <div style="height: 280px; width: 100%; position: relative;"><canvas id="donutChart"></canvas></div>
                         </div>
                     </div>
 
                     <!-- Charts Row 2: Demographics -->
                     <div class="demographics-grid" style="margin-bottom: 24px;">
                         <div class="card">
-                            <h3 class="card-title"><i class="fas fa-venus-mars" style="color:#EC4899;margin-right:8px;"></i>แยกตามเพศ</h3>
-                            <div style="height: 260px; width: 100%; position: relative;"><canvas id="pieChart"></canvas></div>
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="fas fa-venus-mars" style="color:#EC4899;margin-right:8px;"></i>แยกตามเพศ</h3>
+                            </div>
+                            <div style="height: 240px; width: 100%; position: relative;"><canvas id="pieChart"></canvas></div>
                         </div>
                         <div class="card">
-                            <h3 class="card-title"><i class="fas fa-birthday-cake" style="color:#10B981;margin-right:8px;"></i>แยกตามอายุ</h3>
-                            <div style="height: 260px; width: 100%; position: relative;"><canvas id="ageChart"></canvas></div>
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="fas fa-birthday-cake" style="color:#10B981;margin-right:8px;"></i>แยกตามอายุ</h3>
+                            </div>
+                            <div style="height: 240px; width: 100%; position: relative;"><canvas id="ageChart"></canvas></div>
                         </div>
                         <div class="card">
-                            <h3 class="card-title"><i class="fas fa-user-tag" style="color:#F59E0B;margin-right:8px;"></i>แยกตามบทบาท</h3>
-                            <div style="height: 260px; width: 100%; position: relative;"><canvas id="roleChart"></canvas></div>
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="fas fa-user-tag" style="color:#F59E0B;margin-right:8px;"></i>แยกตามบทบาท</h3>
+                            </div>
+                            <div style="height: 240px; width: 100%; position: relative;"><canvas id="roleChart"></canvas></div>
                         </div>
                     </div>
 
                     <!-- Question Stats Table -->
                     <div class="card">
-                        <h3 class="card-title"><i class="fas fa-table" style="color:var(--primary);margin-right:8px;"></i>รายละเอียดสถิติรายข้อ</h3>
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-table" style="color:var(--primary);margin-right:8px;"></i>รายละเอียดสถิติรายข้อ</h3>
+                        </div>
                         <div class="table-responsive">
                             <table>
                                 <thead>
@@ -178,21 +239,26 @@
                     </div>
                 </div>
 
-                <!-- Empty state when no survey selected -->
-                <div id="emptyStatsState" style="text-align:center;padding:4rem 2rem;">
-                    <i class="fas fa-chart-bar" style="font-size:4rem;color:#CBD5E1;margin-bottom:1.5rem;display:block;"></i>
-                    <h3 style="color:#64748B;margin-bottom:0.5rem;">เลือกแบบประเมินเพื่อดูสถิติ</h3>
-                    <p style="color:#94A3B8;">กรุณาเลือกแบบประเมินจากเมนูด้านบน</p>
+                <!-- Empty State Container -->
+                <div id="emptyStatsState">
+                    <!-- Injected dynamically by getEmptyStateHtml -->
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Mobile Sticky Action Bar -->
+    <div class="sticky-action-bar" id="statsMobileStickyBar" style="display:none;">
+        <button type="button" class="btn btn-primary" onclick="exportToExcel()" id="mobileExportBtn">
+            <i class="fas fa-file-excel"></i> <span>ส่งออกรายงาน Excel</span>
+        </button>
     </div>
 
     <div class="toast-container" id="toastContainer"></div>
 
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/admin.js?v=2.2"></script>
-    <script src="js/stats.js?v=2.2"></script>
+    <script src="js/admin.js?v=2.3"></script>
+    <script src="js/stats.js?v=2.3"></script>
 </body>
 </html>

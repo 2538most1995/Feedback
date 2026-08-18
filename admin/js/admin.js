@@ -267,3 +267,255 @@ function starRating(rating) {
     for (let i = 0; i < empty; i++) html += '<i class="far fa-star" style="color:#E2E8F0;"></i>';
     return html;
 }
+
+// Button loading state helper
+function setButtonLoading(btn, isLoading, loadingText = 'กำลังดำเนินการ...') {
+    if (!btn) return;
+    if (isLoading) {
+        btn.dataset.originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span>${loadingText}</span>`;
+    } else {
+        btn.disabled = false;
+        if (btn.dataset.originalHtml) {
+            btn.innerHTML = btn.dataset.originalHtml;
+        }
+    }
+}
+
+// Inline Validation helpers
+function showFieldError(inputEl, message) {
+    if (!inputEl) return;
+    inputEl.classList.remove('is-valid');
+    inputEl.classList.add('is-invalid');
+    
+    let feedback = inputEl.parentNode.querySelector('.invalid-feedback');
+    if (!feedback) {
+        feedback = document.createElement('div');
+        feedback.className = 'invalid-feedback';
+        inputEl.parentNode.appendChild(feedback);
+    }
+    feedback.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+    feedback.style.display = 'flex';
+}
+
+function clearFieldError(inputEl) {
+    if (!inputEl) return;
+    inputEl.classList.remove('is-invalid');
+    const feedback = inputEl.parentNode.querySelector('.invalid-feedback');
+    if (feedback) feedback.style.display = 'none';
+}
+
+function markFieldValid(inputEl) {
+    if (!inputEl) return;
+    inputEl.classList.remove('is-invalid');
+    inputEl.classList.add('is-valid');
+    const feedback = inputEl.parentNode.querySelector('.invalid-feedback');
+    if (feedback) feedback.style.display = 'none';
+}
+
+// Empty State HTML renderer
+function getEmptyStateHtml({
+    icon = 'fas fa-inbox',
+    title = 'ไม่พบข้อมูล',
+    desc = 'ยังไม่มีข้อมูลที่จะแสดงในขณะนี้',
+    actionText = '',
+    actionOnClick = '',
+    actionIcon = 'fas fa-plus'
+} = {}) {
+    return `
+        <div class="empty-state-card animate-fade">
+            <div class="empty-state-icon">
+                <i class="${icon}"></i>
+            </div>
+            <h3 class="empty-state-title">${title}</h3>
+            <p class="empty-state-desc">${desc}</p>
+            ${actionText ? `
+                <div class="empty-state-action">
+                    <button type="button" class="btn btn-primary" onclick="${actionOnClick}">
+                        <i class="${actionIcon}"></i> ${actionText}
+                    </button>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+// Responsive Searchable Combobox Component
+function createCombobox({
+    container,
+    options = [],
+    value = null,
+    placeholder = '-- เลือกรายการ --',
+    searchPlaceholder = 'ค้นหา...',
+    onChange = null
+}) {
+    if (typeof container === 'string') {
+        container = document.querySelector(container);
+    }
+    if (!container) return null;
+
+    let selectedValue = value;
+    let filteredOptions = [...options];
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'combobox';
+    wrapper.innerHTML = `
+        <button type="button" class="combobox-btn" aria-haspopup="listbox" aria-expanded="false">
+            <span class="combobox-selected-text placeholder">${placeholder}</span>
+            <span class="combobox-badge" style="display:none;"></span>
+            <i class="fas fa-chevron-down combobox-arrow"></i>
+        </button>
+        <div class="combobox-dropdown">
+            <div class="combobox-search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" class="combobox-search-input" placeholder="${searchPlaceholder}" autocomplete="off">
+            </div>
+            <div class="combobox-options" role="listbox"></div>
+        </div>
+    `;
+
+    container.innerHTML = '';
+    container.appendChild(wrapper);
+
+    const btn = wrapper.querySelector('.combobox-btn');
+    const selectedText = wrapper.querySelector('.combobox-selected-text');
+    const badgeEl = wrapper.querySelector('.combobox-badge');
+    const searchInput = wrapper.querySelector('.combobox-search-input');
+    const optionsContainer = wrapper.querySelector('.combobox-options');
+
+    function renderOptionsList() {
+        if (filteredOptions.length === 0) {
+            optionsContainer.innerHTML = '<div class="combobox-empty"><i class="fas fa-search" style="margin-right:6px;"></i> ไม่พบรายการที่ค้นหา</div>';
+            return;
+        }
+
+        optionsContainer.innerHTML = filteredOptions.map(opt => {
+            const isSelected = String(opt.id) === String(selectedValue);
+            const badgeHtml = opt.badge !== undefined && opt.badge !== null ? `<span class="combobox-badge">${opt.badge}</span>` : '';
+            return `
+                <div class="combobox-item ${isSelected ? 'selected' : ''}" data-id="${opt.id}" role="option" aria-selected="${isSelected}">
+                    <span class="combobox-item-title">${opt.title}</span>
+                    ${badgeHtml}
+                </div>
+            `;
+        }).join('');
+
+        optionsContainer.querySelectorAll('.combobox-item').forEach(itemEl => {
+            itemEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = itemEl.getAttribute('data-id');
+                selectItem(id);
+                closeDropdown();
+            });
+        });
+    }
+
+    function selectItem(id, triggerChange = true) {
+        selectedValue = id;
+        const selectedOpt = options.find(o => String(o.id) === String(id));
+
+        if (selectedOpt) {
+            selectedText.textContent = selectedOpt.title;
+            selectedText.classList.remove('placeholder');
+            if (selectedOpt.badge !== undefined && selectedOpt.badge !== null) {
+                badgeEl.textContent = selectedOpt.badge;
+                badgeEl.style.display = 'inline-block';
+            } else {
+                badgeEl.style.display = 'none';
+            }
+        } else {
+            selectedText.textContent = placeholder;
+            selectedText.classList.add('placeholder');
+            badgeEl.style.display = 'none';
+        }
+
+        renderOptionsList();
+        if (triggerChange && onChange) {
+            onChange(selectedValue, selectedOpt);
+        }
+    }
+
+    function openDropdown() {
+        // Close other open comboboxes
+        document.querySelectorAll('.combobox.open').forEach(c => {
+            if (c !== wrapper) c.classList.remove('open');
+        });
+
+        wrapper.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+        searchInput.value = '';
+        filteredOptions = [...options];
+        renderOptionsList();
+        setTimeout(() => searchInput.focus(), 50);
+    }
+
+    function closeDropdown() {
+        wrapper.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+    }
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (wrapper.classList.contains('open')) {
+            closeDropdown();
+        } else {
+            openDropdown();
+        }
+    });
+
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.toLowerCase().trim();
+        if (!query) {
+            filteredOptions = [...options];
+        } else {
+            filteredOptions = options.filter(o => {
+                const matchTitle = (o.title || '').toLowerCase().includes(query);
+                const matchCategory = (o.category || '').toLowerCase().includes(query);
+                return matchTitle || matchCategory;
+            });
+        }
+        renderOptionsList();
+    });
+
+    searchInput.addEventListener('click', (e) => e.stopPropagation());
+
+    document.addEventListener('click', (e) => {
+        if (!wrapper.contains(e.target)) {
+            closeDropdown();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && wrapper.classList.contains('open')) {
+            closeDropdown();
+        }
+    });
+
+    // Initial render
+    if (selectedValue) {
+        selectItem(selectedValue, false);
+    } else {
+        renderOptionsList();
+    }
+
+    return {
+        getValue: () => selectedValue,
+        setValue: (id, trigger = true) => selectItem(id, trigger),
+        updateOptions: (newOptions, newSelectedId = null) => {
+            options = newOptions;
+            filteredOptions = [...options];
+            if (newSelectedId !== null) {
+                selectItem(newSelectedId, false);
+            } else if (selectedValue) {
+                selectItem(selectedValue, false);
+            } else {
+                selectedText.textContent = placeholder;
+                selectedText.classList.add('placeholder');
+                badgeEl.style.display = 'none';
+                renderOptionsList();
+            }
+        }
+    };
+}
+

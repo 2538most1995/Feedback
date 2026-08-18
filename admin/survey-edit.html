@@ -229,21 +229,22 @@
                             <i class="fas fa-eye"></i> ดูตัวอย่าง
                         </button>
                         <button type="button" class="btn btn-outline" id="saveDraftBtn" onclick="saveSurvey('draft')">
-                            <i class="fas fa-save"></i> บันทึกแบบร่าง
+                            <i class="fas fa-save"></i> <span>บันทึกแบบร่าง</span>
                         </button>
                         <button type="button" class="btn btn-primary" id="savePublishBtn" onclick="saveSurvey('published')">
-                            <i class="fas fa-check-circle"></i> บันทึกและเผยแพร่
+                            <i class="fas fa-check-circle"></i> <span>บันทึกและเผยแพร่</span>
                         </button>
                     </div>
                 </div>
             </header>
 
-            <div class="content-area animate-fade">
+            <div class="content-area animate-fade has-sticky-bar">
                 <!-- Basic Info Card -->
                 <div class="card" style="margin-bottom: 24px;">
                     <div class="form-group">
                         <label class="form-label" style="font-weight: 600;">ชื่อแบบประเมิน <span style="color:var(--error);">*</span></label>
-                        <input type="text" class="form-control" id="surveyTitle" placeholder="เช่น แบบประเมินความพึงพอใจการให้บริการ ประจำปี 2567" style="font-size: 1.15rem; font-weight: 600;">
+                        <input type="text" class="form-control" id="surveyTitle" placeholder="เช่น แบบประเมินความพึงพอใจการให้บริการ ประจำปี 2567" style="font-size: 1.15rem; font-weight: 600;" required>
+                        <div class="invalid-feedback"><i class="fas fa-exclamation-circle"></i> กรุณากรอกชื่อแบบประเมิน</div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">คำอธิบายหรือคำชี้แจง</label>
@@ -251,8 +252,9 @@
                     </div>
                     <div style="display: flex; gap: 16px; flex-wrap: wrap;">
                         <div class="form-group" style="flex: 1; min-width: 200px;">
-                            <label class="form-label">หมวดหมู่</label>
-                            <input type="text" class="form-control" id="surveyCategory" placeholder="เช่น บริการทั่วไป, ฝึกอบรม, อาคารสถานที่" list="categoryPresets" value="บริการทั่วไป">
+                            <label class="form-label">หมวดหมู่ <span style="color:var(--error);">*</span></label>
+                            <input type="text" class="form-control" id="surveyCategory" placeholder="เช่น บริการทั่วไป, ฝึกอบรม, อาคารสถานที่" list="categoryPresets" value="บริการทั่วไป" required>
+                            <div class="invalid-feedback"><i class="fas fa-exclamation-circle"></i> กรุณาระบุหมวดหมู่แบบประเมิน</div>
                             <datalist id="categoryPresets">
                                 <option value="บริการทั่วไป">
                                 <option value="การฝึกอบรมและสัมมนา">
@@ -284,6 +286,16 @@
                 </button>
             </div>
         </main>
+    </div>
+
+    <!-- Mobile Sticky Action Bar -->
+    <div class="sticky-action-bar">
+        <button type="button" class="btn btn-outline" id="mobileSaveDraftBtn" onclick="saveSurvey('draft')">
+            <i class="fas fa-save"></i> <span>บันทึกร่าง</span>
+        </button>
+        <button type="button" class="btn btn-primary" id="mobileSavePublishBtn" onclick="saveSurvey('published')">
+            <i class="fas fa-check-circle"></i> <span>เผยแพร่</span>
+        </button>
     </div>
 
     <!-- Import Survey Modal -->

@@ -137,10 +137,9 @@
             <div class="content-area animate-fade">
                 <div class="card">
                     <div class="filter-bar">
-                        <div style="flex: 1; min-width: 250px;">
-                            <select class="form-control" id="surveyFilter" onchange="onSurveyFilterChange()">
-                                <option value="">-- แสดงทุกแบบประเมิน --</option>
-                            </select>
+                        <div style="flex: 1; min-width: 250px;" id="responseSurveyCombobox">
+                            <!-- Populated with Combobox -->
+                            <div class="skeleton" style="height: 44px; width: 100%;"></div>
                         </div>
                         <div class="search-box">
                             <i class="fas fa-search"></i>
@@ -167,9 +166,10 @@
                             </thead>
                             <tbody id="responsesTableBody">
                                 <tr>
-                                    <td colspan="8" style="text-align:center; padding: 2rem; color: var(--text-light);">
-                                        <i class="fas fa-spinner fa-spin fa-2x" style="color:var(--primary); margin-bottom:0.5rem; display:block;"></i>
-                                        กำลังโหลดข้อมูลคำตอบ...
+                                    <td colspan="8" style="padding: 16px 20px;">
+                                        <div class="skeleton-row"><div class="skeleton skeleton-title" style="width: 50%;"></div></div>
+                                        <div class="skeleton-row"><div class="skeleton skeleton-title" style="width: 65%;"></div></div>
+                                        <div class="skeleton-row"><div class="skeleton skeleton-title" style="width: 40%;"></div></div>
                                     </td>
                                 </tr>
                             </tbody>
@@ -198,11 +198,12 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
-    <script src="js/admin.js?v=2.2"></script>
+    <script src="js/admin.js?v=2.3"></script>
     <script>
         let allResponses = [];
         let surveysList = [];
         let selectedSurveyId = null;
+        let responseCombobox = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             checkAuth();
@@ -218,15 +219,29 @@
         });
 
         async function loadSurveysDropdown() {
-            const selector = document.getElementById('surveyFilter');
             try {
                 const res = await api('../api/surveys.php');
                 if (res && res.success && res.data) {
                     surveysList = res.data;
-                    selector.innerHTML = '<option value="">-- แสดงทุกแบบประเมิน --</option>';
-                    surveysList.forEach(s => {
-                        const isSel = selectedSurveyId == s.id ? 'selected' : '';
-                        selector.innerHTML += `<option value="${s.id}" ${isSel}>${s.title} (${s.response_count || 0} คำตอบ)</option>`;
+                    const options = [
+                        { id: '', title: 'แสดงทุกแบบประเมิน', badge: `${surveysList.reduce((sum, s) => sum + (s.response_count || 0), 0)} ทั้งหมด` },
+                        ...surveysList.map(s => ({
+                            id: s.id,
+                            title: s.title,
+                            badge: `${s.response_count || 0} คำตอบ`
+                        }))
+                    ];
+
+                    responseCombobox = createCombobox({
+                        container: '#responseSurveyCombobox',
+                        options: options,
+                        value: selectedSurveyId ? String(selectedSurveyId) : '',
+                        placeholder: '-- แสดงทุกแบบประเมิน --',
+                        searchPlaceholder: '🔍 ค้นหาชื่อแบบประเมิน...',
+                        onChange: (newVal) => {
+                            selectedSurveyId = newVal ? parseInt(newVal) : null;
+                            loadResponses();
+                        }
                     });
                 }
             } catch (err) {
@@ -238,9 +253,10 @@
             const tbody = document.getElementById('responsesTableBody');
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" style="text-align:center; padding: 2rem; color: var(--text-light);">
-                        <i class="fas fa-spinner fa-spin fa-2x" style="color:var(--primary); margin-bottom:0.5rem; display:block;"></i>
-                        กำลังโหลดข้อมูลคำตอบ...
+                    <td colspan="8" style="padding: 16px 20px;">
+                        <div class="skeleton-row"><div class="skeleton skeleton-title" style="width: 50%;"></div></div>
+                        <div class="skeleton-row"><div class="skeleton skeleton-title" style="width: 65%;"></div></div>
+                        <div class="skeleton-row"><div class="skeleton skeleton-title" style="width: 40%;"></div></div>
                     </td>
                 </tr>`;
 
@@ -251,18 +267,12 @@
                     allResponses = res.data || [];
                     filterResponsesTable();
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="8" class="empty-state-box"><p>ไม่สามารถโหลดข้อมูลผู้ตอบได้</p></td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="8">${getEmptyStateHtml({ icon: 'fas fa-exclamation-triangle', title: 'ไม่สามารถโหลดข้อมูลได้', desc: res ? res.message : '', actionText: 'ลองใหม่', actionOnClick: 'loadResponses()', actionIcon: 'fas fa-redo' })}</td></tr>`;
                 }
             } catch (err) {
                 console.error(err);
-                tbody.innerHTML = `<tr><td colspan="8" class="empty-state-box"><p>เกิดข้อผิดพลาดในการโหลดข้อมูล</p></td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8">${getEmptyStateHtml({ icon: 'fas fa-wifi', title: 'เกิดข้อผิดพลาดในการเชื่อมต่อ', desc: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้', actionText: 'ลองใหม่', actionOnClick: 'loadResponses()', actionIcon: 'fas fa-redo' })}</td></tr>`;
             }
-        }
-
-        function onSurveyFilterChange() {
-            const selector = document.getElementById('surveyFilter');
-            selectedSurveyId = selector.value ? parseInt(selector.value) : null;
-            loadResponses();
         }
 
         function filterResponsesTable() {

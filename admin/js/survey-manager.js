@@ -34,8 +34,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     } else {
         document.getElementById('pageTitle').textContent = `สร้างแบบประเมินใหม่`;
-        // Setup initial default sections
         initDefaultTemplate();
+    }
+
+    // Setup live inline validation
+    const titleInput = document.getElementById('surveyTitle');
+    if (titleInput) {
+        titleInput.addEventListener('input', () => {
+            if (titleInput.value.trim().length > 0) {
+                markFieldValid(titleInput);
+            } else {
+                showFieldError(titleInput, 'กรุณากรอกชื่อแบบประเมิน');
+            }
+        });
+    }
+
+    const catInput = document.getElementById('surveyCategory');
+    if (catInput) {
+        catInput.addEventListener('input', () => {
+            if (catInput.value.trim().length > 0) {
+                markFieldValid(catInput);
+            } else {
+                showFieldError(catInput, 'กรุณาระบุหมวดหมู่');
+            }
+        });
     }
 });
 
@@ -360,20 +382,35 @@ function renumberQuestions(secId) {
 }
 
 function collectSurveyPayload(status) {
-    const title = (document.getElementById('surveyTitle').value || '').trim();
+    const titleInput = document.getElementById('surveyTitle');
+    const title = (titleInput.value || '').trim();
     if (!title) {
-        showToast('กรุณาระบุชื่อแบบประเมิน', 'error');
-        document.getElementById('surveyTitle').focus();
+        showFieldError(titleInput, 'กรุณาระบุชื่อแบบประเมิน');
+        titleInput.focus();
+        titleInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showToast('กรุณาระบุชื่อแบบประเมินให้ครบถ้วน', 'warning');
         return null;
+    } else {
+        markFieldValid(titleInput);
+    }
+
+    const catInput = document.getElementById('surveyCategory');
+    const category = (catInput.value || 'บริการทั่วไป').trim();
+    if (!category) {
+        showFieldError(catInput, 'กรุณาระบุหมวดหมู่');
+        catInput.focus();
+        showToast('กรุณาระบุหมวดหมู่แบบประเมิน', 'warning');
+        return null;
+    } else {
+        markFieldValid(catInput);
     }
 
     const desc = (document.getElementById('surveyDesc').value || '').trim();
-    const category = (document.getElementById('surveyCategory').value || 'บริการทั่วไป').trim();
     const currentStatus = status || document.getElementById('surveyStatus').value || 'draft';
 
     const sectionEls = document.querySelectorAll('.section-card');
     if (sectionEls.length === 0) {
-        showToast('กรุณาเพิ่มอย่างน้อย 1 ส่วนประเมิน', 'error');
+        showToast('กรุณาเพิ่มอย่างน้อย 1 ส่วนประเมิน', 'warning');
         return null;
     }
 
@@ -389,8 +426,16 @@ function collectSurveyPayload(status) {
 
         for (let qIdx = 0; qIdx < qCards.length; qIdx++) {
             const qCard = qCards[qIdx];
-            const qText = (qCard.querySelector('.question-input').value || '').trim();
-            if (!qText) continue; // Skip empty questions
+            const qInput = qCard.querySelector('.question-input');
+            const qText = (qInput.value || '').trim();
+            if (!qText) {
+                showFieldError(qInput, 'กรุณาระบุข้อความคำถาม');
+                qInput.focus();
+                showToast('กรุณาระบุข้อความคำถามในแบบประเมินให้ครบถ้วน', 'warning');
+                return null;
+            } else {
+                markFieldValid(qInput);
+            }
 
             const qType = qCard.querySelector('.question-type-select').value || 'rating';
             const isReq = qCard.querySelector('.q-req-checkbox').checked ? 1 : 0;
@@ -443,15 +488,21 @@ async function saveSurvey(status) {
 
     const saveDraftBtn = document.getElementById('saveDraftBtn');
     const savePublishBtn = document.getElementById('savePublishBtn');
+    const mobileDraftBtn = document.getElementById('mobileSaveDraftBtn');
+    const mobilePublishBtn = document.getElementById('mobileSavePublishBtn');
     
-    if (saveDraftBtn) saveDraftBtn.disabled = true;
-    if (savePublishBtn) savePublishBtn.disabled = true;
+    const targetBtn = status === 'published' ? savePublishBtn : saveDraftBtn;
+    const targetMobileBtn = status === 'published' ? mobilePublishBtn : mobileDraftBtn;
+    const loadingText = status === 'published' ? 'กำลังเผยแพร่...' : 'กำลังบันทึกร่าง...';
+
+    setButtonLoading(targetBtn, true, loadingText);
+    setButtonLoading(targetMobileBtn, true, loadingText);
 
     try {
         const res = await api('../api/surveys.php', method, payload);
         
-        if (saveDraftBtn) saveDraftBtn.disabled = false;
-        if (savePublishBtn) savePublishBtn.disabled = false;
+        setButtonLoading(targetBtn, false);
+        setButtonLoading(targetMobileBtn, false);
 
         if (res && res.success) {
             const newId = res.data && res.data.id ? res.data.id : currentSurveyId;
@@ -461,13 +512,13 @@ async function saveSurvey(status) {
             
             setTimeout(() => {
                 window.location.href = 'surveys.html';
-            }, 1200);
+            }, 1000);
         } else {
             showToast(res ? res.message : 'เกิดข้อผิดพลาดในการบันทึกแบบประเมิน', 'error');
         }
     } catch (err) {
-        if (saveDraftBtn) saveDraftBtn.disabled = false;
-        if (savePublishBtn) savePublishBtn.disabled = false;
+        setButtonLoading(targetBtn, false);
+        setButtonLoading(targetMobileBtn, false);
         console.error('Save survey error:', err);
         showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
     }
