@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>จัดการผู้ใช้และเปลี่ยนรหัสผ่าน - ระบบประเมินความพึงพอใจ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/admin.css?v=2.3">
+    <style>
+        .users-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+        @media (max-width: 1024px) {
+            .users-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .user-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+        .badge-admin {
+            background: #EEF2FF;
+            color: #4F46E5;
+            border: 1px solid #C7D2FE;
+        }
+        .badge-current {
+            background: #ECFDF5;
+            color: #059669;
+            border: 1px solid #A7F3D0;
+        }
+        .table-user-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .user-initials-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), #4338CA);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-sm);
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <i class="fas fa-clipboard-check"></i>
+                <span>FeedbackAdmin</span>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item">
+                    <i class="fas fa-home"></i> หน้าหลัก
+                </a>
+                <a href="surveys.html" class="nav-item">
+                    <i class="fas fa-clipboard-list"></i> แบบประเมิน
+                </a>
+                <a href="stats.html" class="nav-item">
+                    <i class="fas fa-chart-bar"></i> รายงานผล
+                </a>
+                <a href="responses.html" class="nav-item">
+                    <i class="fas fa-users"></i> ผู้ตอบแบบประเมิน
+                </a>
+                <a href="certificates.html" class="nav-item">
+                    <i class="fas fa-award"></i> ออกเกียรติบัตร
+                </a>
+                <a href="users.html" class="nav-item active">
+                    <i class="fas fa-user-cog"></i> จัดการผู้ใช้
+                </a>
+                <a href="../index.html" class="nav-item" target="_blank" title="เปิดดูหน้าเว็บแบบประเมินสำหรับบุคคลทั่วไป">
+                    <i class="fas fa-external-link-alt"></i> ดูหน้าเว็บประเมิน
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-avatar" id="sidebarAvatar">AD</div>
+                <div class="user-info">
+                    <div class="user-name" id="sidebarUserName">แอดมิน ระบบ</div>
+                    <div class="user-role">ผู้ดูแลระบบ</div>
+                </div>
+                <button class="logout-btn" onclick="logout()" title="ออกจากระบบ">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="mobile-toggle" id="mobileToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="page-title">จัดการผู้ดูแลระบบและบัญชีผู้ใช้</h1>
+                </div>
+                <div class="header-right">
+                    <button class="btn btn-primary" onclick="openAddUserModal()">
+                        <i class="fas fa-user-plus"></i> <span>เพิ่มผู้ดูแลระบบ</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-area animate-fade has-sticky-bar">
+                <div class="users-grid">
+                    <!-- Left: My Profile & Password Change -->
+                    <div class="card">
+                        <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 18px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 36px; height: 36px; border-radius: 8px; background: #EEF2FF; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                                    <i class="fas fa-id-card"></i>
+                                </div>
+                                <div>
+                                    <h2 class="card-title" style="font-size: 1.05rem;">ข้อมูลบัญชีและเปลี่ยนรหัสผ่าน</h2>
+                                    <p style="font-size: 0.8rem; color: var(--text-light); margin: 0;">แก้ไขข้อมูลส่วนตัวของคุณ</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form id="myProfileForm" onsubmit="handleMyProfileSubmit(event)">
+                            <div class="form-group">
+                                <label class="form-label" for="myUsername">ชื่อผู้ใช้งาน (Username)</label>
+                                <div class="input-icon-wrapper">
+                                    <input type="text" id="myUsername" class="form-control" disabled style="background: #F8FAFC; color: #64748B; font-weight: 600;">
+                                    <i class="fas fa-user-lock input-icon"></i>
+                                </div>
+                                <div class="form-hint">ไม่สามารถเปลี่ยนชื่อผู้ใช้งานของบัญชีปัจจุบันได้</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="myFullname">ชื่อ - นามสกุลที่แสดง <span style="color:#EF4444;">*</span></label>
+                                <div class="input-icon-wrapper">
+                                    <input type="text" id="myFullname" class="form-control" required placeholder="เช่น ผู้ดูแลระบบ หรือ สมชาย ใจดี">
+                                    <i class="fas fa-user-edit input-icon"></i>
+                                </div>
+                                <div class="invalid-feedback" id="myFullnameError"></div>
+                            </div>
+
+                            <hr style="border: 0; border-top: 1px dashed var(--border); margin: 20px 0;">
+
+                            <div style="margin-bottom: 14px;">
+                                <div style="font-size: 0.92rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                                    <i class="fas fa-key" style="color: var(--primary);"></i> เปลี่ยนรหัสผ่านใหม่
+                                </div>
+                                <div style="font-size: 0.78rem; color: var(--text-light);">หากไม่ต้องการเปลี่ยนรหัสผ่าน ให้เว้นช่องด้านล่างว่างไว้</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="myCurrentPassword">รหัสผ่านปัจจุบัน</label>
+                                <div class="input-icon-wrapper">
+                                    <input type="password" id="myCurrentPassword" class="form-control" placeholder="ระบุรหัสผ่านปัจจุบันเพื่อยืนยัน" autocomplete="current-password">
+                                    <i class="fas fa-lock input-icon"></i>
+                                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('myCurrentPassword', this)" title="แสดง/ซ่อนรหัสผ่าน">
+                                        <i class="far fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="invalid-feedback" id="myCurrentPasswordError"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="myNewPassword">รหัสผ่านใหม่</label>
+                                <div class="input-icon-wrapper">
+                                    <input type="password" id="myNewPassword" class="form-control" placeholder="อย่างน้อย 6 ตัวอักษร" autocomplete="new-password">
+                                    <i class="fas fa-key input-icon"></i>
+                                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('myNewPassword', this)" title="แสดง/ซ่อนรหัสผ่าน">
+                                        <i class="far fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="invalid-feedback" id="myNewPasswordError"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="myConfirmPassword">ยืนยันรหัสผ่านใหม่อีกครั้ง</label>
+                                <div class="input-icon-wrapper">
+                                    <input type="password" id="myConfirmPassword" class="form-control" placeholder="พิมพ์รหัสผ่านใหม่อีกครั้ง" autocomplete="new-password">
+                                    <i class="fas fa-check-double input-icon"></i>
+                                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('myConfirmPassword', this)" title="แสดง/ซ่อนรหัสผ่าน">
+                                        <i class="far fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="invalid-feedback" id="myConfirmPasswordError"></div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" id="saveProfileBtn" style="width: 100%; margin-top: 10px;">
+                                <i class="fas fa-save"></i> <span>บันทึกการเปลี่ยนแปลง</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Right: Manage Admin Users List -->
+                    <div class="card">
+                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                            <div>
+                                <h2 class="card-title" style="font-size: 1.05rem;">รายชื่อผู้ดูแลระบบทั้งหมด</h2>
+                                <p style="font-size: 0.8rem; color: var(--text-light); margin: 0;">ผู้มีสิทธิ์เข้าใช้งานระบบจัดการแบบประเมิน</p>
+                            </div>
+                            <button class="btn btn-outline btn-sm" onclick="loadUsersList()">
+                                <i class="fas fa-sync-alt"></i> รีเฟรช
+                            </button>
+                        </div>
+
+                        <!-- Skeletons Loader -->
+                        <div id="usersLoadingSkeleton">
+                            <div class="skeleton-card" style="margin-bottom: 10px;">
+                                <div class="skeleton skeleton-row" style="height: 48px;"></div>
+                                <div class="skeleton skeleton-row" style="height: 48px;"></div>
+                                <div class="skeleton skeleton-row" style="height: 48px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Users Table Container -->
+                        <div class="table-container" id="usersTableContainer" style="display:none;">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ผู้ใช้งาน</th>
+                                        <th>ชื่อ-นามสกุล</th>
+                                        <th>สถานะ / สิทธิ์</th>
+                                        <th>วันที่สร้าง</th>
+                                        <th style="text-align: right;">การจัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div id="usersEmptyState" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile Sticky Action Bar -->
+    <div class="sticky-action-bar">
+        <button type="button" class="btn btn-primary" onclick="openAddUserModal()" style="width: 100%;">
+            <i class="fas fa-user-plus"></i> <span>เพิ่มผู้ดูแลระบบใหม่</span>
+        </button>
+    </div>
+
+    <!-- Modal: Add Admin User -->
+    <div class="modal-backdrop" id="addUserModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99999; align-items: center; justify-content: center; padding: 16px;">
+        <div class="card animate-slide-up" style="max-width: 480px; width: 100%; margin: auto; padding: 24px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+                <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--primary-dark); margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-user-plus" style="color: var(--primary);"></i> เพิ่มผู้ดูแลระบบใหม่
+                </h3>
+                <button type="button" onclick="closeAddUserModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-light);">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form id="addUserForm" onsubmit="handleAddUserSubmit(event)">
+                <div class="form-group">
+                    <label class="form-label" for="addUsername">ชื่อผู้ใช้งาน (Username) <span style="color:#EF4444;">*</span></label>
+                    <div class="input-icon-wrapper">
+                        <input type="text" id="addUsername" class="form-control" required placeholder="ภาษาอังกฤษหรือตัวเลข เช่น staff01" autocomplete="username">
+                        <i class="fas fa-user input-icon"></i>
+                    </div>
+                    <div class="invalid-feedback" id="addUsernameError"></div>
+                    <div class="form-hint">ใช้อักษรภาษาอังกฤษ ตัวเลข และขีดล่าง (_) อย่างน้อย 3 ตัวอักษร</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="addFullname">ชื่อ - นามสกุล <span style="color:#EF4444;">*</span></label>
+                    <div class="input-icon-wrapper">
+                        <input type="text" id="addFullname" class="form-control" required placeholder="เช่น นายสมชาย ใจดี">
+                        <i class="fas fa-id-card input-icon"></i>
+                    </div>
+                    <div class="invalid-feedback" id="addFullnameError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="addPassword">รหัสผ่านเริ่มต้น <span style="color:#EF4444;">*</span></label>
+                    <div class="input-icon-wrapper">
+                        <input type="password" id="addPassword" class="form-control" required placeholder="อย่างน้อย 6 ตัวอักษร" autocomplete="new-password">
+                        <i class="fas fa-lock input-icon"></i>
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('addPassword', this)" title="แสดง/ซ่อนรหัสผ่าน">
+                            <i class="far fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="invalid-feedback" id="addPasswordError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="addRole">บทบาท / ตำแหน่ง</label>
+                    <select id="addRole" class="form-control">
+                        <option value="admin">ผู้ดูแลระบบ (Admin)</option>
+                        <option value="editor">เจ้าหน้าที่จัดการแบบประเมิน (Editor)</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="closeAddUserModal()">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary" id="submitAddUserBtn">
+                        <i class="fas fa-check"></i> <span>สร้างบัญชีผู้ใช้</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Reset Password for Admin User -->
+    <div class="modal-backdrop" id="resetPasswordModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99999; align-items: center; justify-content: center; padding: 16px;">
+        <div class="card animate-slide-up" style="max-width: 440px; width: 100%; margin: auto; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+                <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--primary-dark); margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-key" style="color: var(--primary);"></i> รีเซ็ตรหัสผ่านผู้ดูแล
+                </h3>
+                <button type="button" onclick="closeResetPasswordModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-light);">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form id="resetPasswordForm" onsubmit="handleResetPasswordSubmit(event)">
+                <input type="hidden" id="resetUserId">
+                
+                <div class="form-group">
+                    <label class="form-label">ผู้ใช้งานที่จะรีเซ็ตรหัสผ่าน</label>
+                    <div id="resetTargetUsername" style="font-weight: 700; color: var(--primary); font-size: 1.05rem; padding: 8px 12px; background: #EEF2FF; border-radius: 8px;">--</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="resetNewPassword">รหัสผ่านใหม่ <span style="color:#EF4444;">*</span></label>
+                    <div class="input-icon-wrapper">
+                        <input type="password" id="resetNewPassword" class="form-control" required placeholder="อย่างน้อย 6 ตัวอักษร" autocomplete="new-password">
+                        <i class="fas fa-lock input-icon"></i>
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('resetNewPassword', this)" title="แสดง/ซ่อนรหัสผ่าน">
+                            <i class="far fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="invalid-feedback" id="resetNewPasswordError"></div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="closeResetPasswordModal()">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary" id="submitResetPasswordBtn">
+                        <i class="fas fa-save"></i> <span>ตั้งรหัสผ่านใหม่</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/admin.js?v=2.3"></script>
+    <script>
+        let allUsers = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const authed = await checkAuth();
+            if (authed) {
+                loadMyProfile();
+                loadUsersList();
+            }
+        });
+
+        // Helper to toggle show/hide password
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Load Current Admin Profile
+        async function loadMyProfile() {
+            try {
+                const res = await api('../api/auth.php');
+                if (res && res.data) {
+                    const my = res.data;
+                    document.getElementById('myUsername').value = my.username || '';
+                    document.getElementById('myFullname').value = my.fullname || '';
+                }
+            } catch (err) {
+                console.error('Error loading my profile:', err);
+            }
+        }
+
+        // Handle My Profile and Password Submit
+        async function handleMyProfileSubmit(e) {
+            e.preventDefault();
+            const fullnameInput = document.getElementById('myFullname');
+            const curPassInput = document.getElementById('myCurrentPassword');
+            const newPassInput = document.getElementById('myNewPassword');
+            const confPassInput = document.getElementById('myConfirmPassword');
+            const saveBtn = document.getElementById('saveProfileBtn');
+
+            clearFieldError(fullnameInput);
+            clearFieldError(curPassInput);
+            clearFieldError(newPassInput);
+            clearFieldError(confPassInput);
+
+            const fullname = fullnameInput.value.trim();
+            const current_password = curPassInput.value;
+            const new_password = newPassInput.value;
+            const confirm_password = confPassInput.value;
+
+            if (!fullname) {
+                showFieldError(fullnameInput, 'กรุณาระบุชื่อ-นามสกุล', 'myFullnameError');
+                return;
+            }
+
+            if (new_password || current_password || confirm_password) {
+                if (!current_password) {
+                    showFieldError(curPassInput, 'กรุณาระบุรหัสผ่านปัจจุบันเพื่อยืนยันการเปลี่ยนรหัส', 'myCurrentPasswordError');
+                    return;
+                }
+                if (new_password.length < 6) {
+                    showFieldError(newPassInput, 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร', 'myNewPasswordError');
+                    return;
+                }
+                if (new_password !== confirm_password) {
+                    showFieldError(confPassInput, 'การยืนยันรหัสผ่านใหม่ไม่ตรงกัน', 'myConfirmPasswordError');
+                    return;
+                }
+            }
+
+            setButtonLoading(saveBtn, true, 'กำลังบันทึก...');
+
+            try {
+                const payload = {
+                    action: 'change_password',
+                    fullname: fullname,
+                    current_password: current_password,
+                    new_password: new_password
+                };
+
+                const res = await api('../api/users.php', 'PUT', payload);
+                setButtonLoading(saveBtn, false);
+
+                if (res && res.success) {
+                    showToast('บันทึกการเปลี่ยนแปลงข้อมูลและรหัสผ่านสำเร็จ!', 'success');
+                    curPassInput.value = '';
+                    newPassInput.value = '';
+                    confPassInput.value = '';
+                    markFieldValid(fullnameInput);
+                    loadMyProfile();
+                    loadUsersList();
+                } else {
+                    showToast(res ? res.message : 'ไม่สามารถบันทึกข้อมูลได้', 'error');
+                }
+            } catch (err) {
+                setButtonLoading(saveBtn, false);
+                console.error('Update profile error:', err);
+            }
+        }
+
+        // Load All Admin Users List
+        async function loadUsersList() {
+            const skeleton = document.getElementById('usersLoadingSkeleton');
+            const tableContainer = document.getElementById('usersTableContainer');
+            const emptyState = document.getElementById('usersEmptyState');
+            const tbody = document.getElementById('usersTableBody');
+
+            if (skeleton) skeleton.style.display = 'block';
+            if (tableContainer) tableContainer.style.display = 'none';
+            if (emptyState) emptyState.style.display = 'none';
+
+            try {
+                const res = await api('../api/users.php');
+                if (skeleton) skeleton.style.display = 'none';
+
+                if (res && res.success && res.data) {
+                    allUsers = res.data;
+                    renderUsersTable(allUsers);
+                } else {
+                    throw new Error(res ? res.message : 'เกิดข้อผิดพลาด');
+                }
+            } catch (err) {
+                if (skeleton) skeleton.style.display = 'none';
+                console.error('Load users error:', err);
+                if (emptyState) {
+                    emptyState.innerHTML = getEmptyStateHtml({
+                        icon: 'fa-exclamation-triangle',
+                        title: 'ไม่สามารถโหลดรายชื่อผู้ใช้ได้',
+                        description: err.message || 'โปรดตรวจสอบการเชื่อมต่อเซิร์ฟเวอร์',
+                        actionText: 'ลองใหม่อีกครั้ง',
+                        actionIcon: 'fa-sync-alt',
+                        onAction: 'loadUsersList()'
+                    });
+                    emptyState.style.display = 'block';
+                }
+            }
+        }
+
+        function renderUsersTable(users) {
+            const tableContainer = document.getElementById('usersTableContainer');
+            const emptyState = document.getElementById('usersEmptyState');
+            const tbody = document.getElementById('usersTableBody');
+
+            if (!users || users.length === 0) {
+                if (tableContainer) tableContainer.style.display = 'none';
+                if (emptyState) {
+                    emptyState.innerHTML = getEmptyStateHtml({
+                        icon: 'fa-user-slash',
+                        title: 'ยังไม่มีผู้ดูแลระบบในระบบ',
+                        description: 'คลิกปุ่มด้านล่างเพื่อเพิ่มผู้ดูแลระบบคนแรก',
+                        actionText: '+ เพิ่มผู้ดูแลระบบ',
+                        onAction: 'openAddUserModal()'
+                    });
+                    emptyState.style.display = 'block';
+                }
+                return;
+            }
+
+            if (emptyState) emptyState.style.display = 'none';
+            if (tableContainer) tableContainer.style.display = 'block';
+
+            tbody.innerHTML = users.map(u => {
+                const initials = (u.fullname || u.username).substring(0, 2).toUpperCase();
+                const isCurrentBadge = u.is_current ? `<span class="user-badge badge-current"><i class="fas fa-check-circle"></i> บัญชีนี้ (คุณ)</span>` : '';
+                const roleLabel = u.role === 'editor' ? 'เจ้าหน้าที่ (Editor)' : 'ผู้ดูแลระบบ (Admin)';
+                const dateStr = u.created_at ? new Date(u.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
+
+                const deleteBtn = u.is_current 
+                    ? `<button class="btn btn-outline btn-sm" disabled title="ไม่สามารถลบบัญชีของตนเองได้" style="opacity: 0.4;"><i class="fas fa-trash"></i></button>`
+                    : `<button class="btn btn-outline btn-sm text-danger" onclick="confirmDeleteUser(${u.id}, '${escapeHtml(u.username)}')" title="ลบผู้ใช้นี้"><i class="fas fa-trash"></i></button>`;
+
+                return `
+                    <tr>
+                        <td>
+                            <div class="table-user-cell">
+                                <div class="user-initials-avatar">${escapeHtml(initials)}</div>
+                                <div>
+                                    <div style="font-weight: 700; color: #1E293B;">${escapeHtml(u.username)}</div>
+                                    ${isCurrentBadge}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-weight: 500;">${escapeHtml(u.fullname || '-')}</div>
+                        </td>
+                        <td>
+                            <span class="user-badge badge-admin"><i class="fas fa-shield-alt"></i> ${roleLabel}</span>
+                        </td>
+                        <td>
+                            <span style="font-size: 0.85rem; color: var(--text-light);">${dateStr}</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <div style="display: inline-flex; gap: 6px;">
+                                <button class="btn btn-outline btn-sm" onclick="openResetPasswordModal(${u.id}, '${escapeHtml(u.username)}')" title="รีเซ็ตรหัสผ่าน">
+                                    <i class="fas fa-key"></i> <span class="hide-mobile">รีเซ็ตรหัส</span>
+                                </button>
+                                ${deleteBtn}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Add User Modal
+        function openAddUserModal() {
+            document.getElementById('addUserForm').reset();
+            document.getElementById('addUserModal').style.display = 'flex';
+            setTimeout(() => document.getElementById('addUsername').focus(), 100);
+        }
+
+        function closeAddUserModal() {
+            document.getElementById('addUserModal').style.display = 'none';
+        }
+
+        async function handleAddUserSubmit(e) {
+            e.preventDefault();
+            const usernameInput = document.getElementById('addUsername');
+            const fullnameInput = document.getElementById('addFullname');
+            const passwordInput = document.getElementById('addPassword');
+            const roleInput = document.getElementById('addRole');
+            const submitBtn = document.getElementById('submitAddUserBtn');
+
+            clearFieldError(usernameInput);
+            clearFieldError(fullnameInput);
+            clearFieldError(passwordInput);
+
+            const username = usernameInput.value.trim();
+            const fullname = fullnameInput.value.trim();
+            const password = passwordInput.value;
+            const role = roleInput.value;
+
+            if (username.length < 3) {
+                showFieldError(usernameInput, 'ชื่อผู้ใช้งานต้องมีอย่างน้อย 3 ตัวอักษร', 'addUsernameError');
+                return;
+            }
+
+            if (!fullname) {
+                showFieldError(fullnameInput, 'กรุณาระบุชื่อ-นามสกุล', 'addFullnameError');
+                return;
+            }
+
+            if (password.length < 6) {
+                showFieldError(passwordInput, 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร', 'addPasswordError');
+                return;
+            }
+
+            setButtonLoading(submitBtn, true, 'กำลังสร้างบัญชี...');
+
+            try {
+                const res = await api('../api/users.php', 'POST', {
+                    username, fullname, password, role
+                });
+
+                setButtonLoading(submitBtn, false);
+
+                if (res && res.success) {
+                    closeAddUserModal();
+                    showToast(`เพิ่มผู้ดูแลระบบ "${username}" สำเร็จ!`, 'success');
+                    loadUsersList();
+                } else {
+                    showToast(res ? res.message : 'ไม่สามารถเพิ่มผู้ดูแลได้', 'error');
+                }
+            } catch (err) {
+                setButtonLoading(submitBtn, false);
+                console.error('Add user error:', err);
+            }
+        }
+
+        // Reset Password Modal for Other Users
+        function openResetPasswordModal(userId, username) {
+            document.getElementById('resetPasswordForm').reset();
+            document.getElementById('resetUserId').value = userId;
+            document.getElementById('resetTargetUsername').textContent = username;
+            document.getElementById('resetPasswordModal').style.display = 'flex';
+            setTimeout(() => document.getElementById('resetNewPassword').focus(), 100);
+        }
+
+        function closeResetPasswordModal() {
+            document.getElementById('resetPasswordModal').style.display = 'none';
+        }
+
+        async function handleResetPasswordSubmit(e) {
+            e.preventDefault();
+            const userId = document.getElementById('resetUserId').value;
+            const newPasswordInput = document.getElementById('resetNewPassword');
+            const submitBtn = document.getElementById('submitResetPasswordBtn');
+
+            clearFieldError(newPasswordInput);
+            const new_password = newPasswordInput.value;
+
+            if (new_password.length < 6) {
+                showFieldError(newPasswordInput, 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร', 'resetNewPasswordError');
+                return;
+            }
+
+            setButtonLoading(submitBtn, true, 'กำลังบันทึก...');
+
+            try {
+                const res = await api('../api/users.php', 'PUT', {
+                    action: 'admin_reset_password',
+                    user_id: parseInt(userId),
+                    new_password: new_password
+                });
+
+                setButtonLoading(submitBtn, false);
+
+                if (res && res.success) {
+                    closeResetPasswordModal();
+                    showToast('รีเซ็ตรหัสผ่านสำหรับผู้ใช้เรียบร้อยแล้ว!', 'success');
+                } else {
+                    showToast(res ? res.message : 'ไม่สามารถรีเซ็ตรหัสผ่านได้', 'error');
+                }
+            } catch (err) {
+                setButtonLoading(submitBtn, false);
+                console.error('Reset pass error:', err);
+            }
+        }
+
+        // Delete User
+        async function confirmDeleteUser(userId, username) {
+            if (!confirm(`คุณต้องการลบผู้ดูแลระบบ "${username}" ใช่หรือไม่?\nการดำเนินการนี้ไม่สามารถยกเลิกได้`)) {
+                return;
+            }
+
+            try {
+                const res = await api(`../api/users.php?id=${userId}`, 'DELETE');
+                if (res && res.success) {
+                    showToast(`ลบผู้ดูแลระบบ "${username}" สำเร็จ`, 'success');
+                    loadUsersList();
+                } else {
+                    showToast(res ? res.message : 'ไม่สามารถลบผู้ดูแลได้', 'error');
+                }
+            } catch (err) {
+                console.error('Delete user error:', err);
+            }
+        }
+    </script>
+</body>
+</html>

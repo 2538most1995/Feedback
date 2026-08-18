@@ -467,14 +467,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const now = new Date();
         const thaiMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
                            'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-        const formattedDate = `ให้ไว้ ณ วันที่ ${now.getDate()} ${thaiMonths[now.getMonth()]} พ.ศ. ${now.getFullYear() + 543}`;
+        const formattedDate = `${now.getDate()} ${thaiMonths[now.getMonth()]} พ.ศ. ${now.getFullYear() + 543}`;
 
         // Create an exact A4 landscape offscreen container (1123px x 794px ~ 297mm x 210mm at 96 DPI)
         const exportDiv = document.createElement('div');
         exportDiv.style.position = 'fixed';
-        exportDiv.style.left = '0';
+        exportDiv.style.left = '-99999px';
         exportDiv.style.top = '0';
-        exportDiv.style.zIndex = '-9999';
+        exportDiv.style.zIndex = '10000';
         exportDiv.style.width = '1123px';
         exportDiv.style.height = '794px';
         exportDiv.style.boxSizing = 'border-box';
@@ -482,6 +482,8 @@ document.addEventListener('DOMContentLoaded', () => {
         exportDiv.style.padding = '0';
         exportDiv.style.overflow = 'hidden';
         exportDiv.style.backgroundColor = '#FFFFFF';
+        exportDiv.style.opacity = '1';
+        exportDiv.style.visibility = 'visible';
         exportDiv.className = `cert-bg-${cert.bg_preset || 'gold-luxury'}`;
 
         if (cert.bg_preset === 'custom' && cert.bg_image_url) {
@@ -598,6 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const modalPngBtn = document.getElementById('certModalDownloadPngBtn');
             const modalPdfBtn = document.getElementById('certModalDownloadPdfBtn');
             const modalLineTip = document.getElementById('certModalLineTip');
+            const modalExtBtn = document.getElementById('certModalOpenExtBtn');
 
             if (modalImg) modalImg.src = pngDataUrl;
             if (modalPngBtn) {
@@ -606,6 +609,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (modalLineTip) {
                 modalLineTip.style.display = isLine ? 'block' : 'none';
+            }
+            if (modalExtBtn) {
+                if (isLine) {
+                    modalExtBtn.style.display = 'inline-flex';
+                    try {
+                        const currentUrl = new URL(window.location.href);
+                        currentUrl.searchParams.set('openExternalBrowser', '1');
+                        modalExtBtn.href = currentUrl.toString();
+                    } catch (e) {
+                        modalExtBtn.href = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'openExternalBrowser=1';
+                    }
+                } else {
+                    modalExtBtn.style.display = 'none';
+                }
             }
 
             const downloadPdfAction = () => {
