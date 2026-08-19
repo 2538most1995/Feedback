@@ -469,29 +469,9 @@ document.addEventListener('DOMContentLoaded', () => {
                            'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
         const formattedDate = `${now.getDate()} ${thaiMonths[now.getMonth()]} พ.ศ. ${now.getFullYear() + 543}`;
 
-        // Create an exact A4 landscape offscreen container matching the 840px x 594px editor 1:1
-        const exportDiv = document.createElement('div');
-        exportDiv.style.position = 'fixed';
-        exportDiv.style.left = '-99999px';
-        exportDiv.style.top = '0';
-        exportDiv.style.zIndex = '99999';
-        exportDiv.style.width = '840px';
-        exportDiv.style.height = '594px';
-        exportDiv.style.boxSizing = 'border-box';
-        exportDiv.style.margin = '0';
-        exportDiv.style.padding = '0';
-        exportDiv.style.overflow = 'hidden';
-        exportDiv.style.backgroundColor = '#FFFFFF';
-        exportDiv.style.opacity = '1';
-        exportDiv.style.visibility = 'visible';
-        exportDiv.className = `cert-bg-${cert.bg_preset || 'gold-luxury'}`;
-
-        if (cert.bg_preset === 'custom' && cert.bg_image_url) {
-            exportDiv.style.backgroundImage = `url(${cert.bg_image_url})`;
-            exportDiv.style.backgroundSize = '100% 100%';
-            exportDiv.style.backgroundPosition = 'center';
-            exportDiv.style.backgroundRepeat = 'no-repeat';
-        }
+        // Create an offscreen wrapper container with top:0, left:0, opacity:0 to avoid negative coordinate calculation bugs in html2canvas
+        const renderWrapper = document.createElement('div');
+        renderWrapper.style.cssText = 'position: fixed; top: 0; left: 0; width: 840px; height: 594px; z-index: -9999; opacity: 0; pointer-events: none; overflow: hidden; margin: 0; padding: 0;';
 
         const defaultPos = {
             logo: { x: 50, y: 14, size: 70 },
@@ -525,62 +505,107 @@ document.addEventListener('DOMContentLoaded', () => {
         const issuerName = cert.issuer_name || '';
         const issuerTitle = cert.issuer_title || '';
 
-        const logoSize = pos.logo && pos.logo.size ? pos.logo.size : 70;
-        const titleSize = pos.title && pos.title.size ? pos.title.size : 34;
-        const subtitleSize = pos.subtitle && pos.subtitle.size ? pos.subtitle.size : 17;
-        const recipientSize = pos.recipient && pos.recipient.size ? pos.recipient.size : 28;
-        const bodySize = pos.body && pos.body.size ? pos.body.size : 15;
-        const dateSize = pos.date && pos.date.size ? pos.date.size : 14;
-        const signatureSize = pos.signature && pos.signature.size ? pos.signature.size : 50;
-        const issuerSize = pos.issuer && pos.issuer.size ? pos.issuer.size : 15;
+        const logoSize = (pos.logo && pos.logo.size) ? pos.logo.size : 70;
+        const titleSize = (pos.title && pos.title.size) ? pos.title.size : 34;
+        const subtitleSize = (pos.subtitle && pos.subtitle.size) ? pos.subtitle.size : 17;
+        const recipientSize = (pos.recipient && pos.recipient.size) ? pos.recipient.size : 28;
+        const bodySize = (pos.body && pos.body.size) ? pos.body.size : 15;
+        const dateSize = (pos.date && pos.date.size) ? pos.date.size : 14;
+        const signatureSize = (pos.signature && pos.signature.size) ? pos.signature.size : 50;
+        const issuerSize = (pos.issuer && pos.issuer.size) ? pos.issuer.size : 15;
         const issuerTitleSize = Math.round(issuerSize * 0.85);
 
-        const logoHtml = cert.logo_url 
-            ? `<img src="${cert.logo_url}" style="max-width:${logoSize}px; max-height:${logoSize}px; object-fit:contain;" alt="Logo">` 
-            : `<i class="fas fa-award" style="font-size: ${Math.round(logoSize * 0.75)}px; color: #D97706;"></i>`;
+        const sheet = document.createElement('div');
+        sheet.className = `cert-sheet-render cert-bg-${cert.bg_preset || 'gold-luxury'}`;
+        sheet.style.cssText = 'width: 840px; height: 594px; position: relative; background-color: #FFFFFF; box-sizing: border-box; overflow: hidden; user-select: none; margin: 0; padding: 0;';
 
-        const signatureHtml = cert.signature_url 
-            ? `<div style="position: absolute; left: ${pos.signature ? pos.signature.x : 50}%; top: ${pos.signature ? pos.signature.y : 79}%; transform: translate(-50%, -50%); text-align:center;">
-                 <img src="${cert.signature_url}" style="height: ${signatureSize}px; max-width: 260px; object-fit:contain;" alt="Signature">
-               </div>` 
+        if (cert.bg_preset === 'custom' && cert.bg_image_url) {
+            sheet.style.backgroundImage = `url(${cert.bg_image_url})`;
+            sheet.style.backgroundSize = 'cover';
+            sheet.style.backgroundPosition = 'center';
+            sheet.style.backgroundRepeat = 'no-repeat';
+        }
+
+        const logoInner = cert.logo_url 
+            ? `<img src="${cert.logo_url}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="Logo">` 
+            : `<i class="fas fa-award" style="font-size: ${Math.round(logoSize * 0.74)}px; color: #D97706;"></i>`;
+
+        const signatureInner = cert.signature_url 
+            ? `<img src="${cert.signature_url}" style="height: 100%; max-width: 260px; object-fit: contain;" alt="Signature">` 
             : ``;
 
-        exportDiv.innerHTML = `
-            <div style="position: absolute; left: ${pos.logo ? pos.logo.x : 50}%; top: ${pos.logo ? pos.logo.y : 14}%; transform: translate(-50%, -50%); text-align:center;">
-                ${logoHtml}
+        sheet.innerHTML = `
+            <div class="cert-element el-logo" style="left: ${pos.logo.x}%; top: ${pos.logo.y}%;">
+                <div style="width: ${logoSize}px; height: ${logoSize}px; display: flex; align-items: center; justify-content: center;">
+                    ${logoInner}
+                </div>
             </div>
-            <div style="position: absolute; left: ${pos.title ? pos.title.x : 50}%; top: ${pos.title ? pos.title.y : 26}%; transform: translate(-50%, -50%); font-family: 'Prompt', 'Sarabun', sans-serif; font-size: ${titleSize}px; font-weight: 700; color: #1E293B; text-align:center; width: 100%; letter-spacing: 0.5px; white-space: pre-line; word-break: break-word;">
-                ${escapeHtml(titleText)}
+            <div class="cert-element el-title" style="left: ${pos.title.x}%; top: ${pos.title.y}%; font-size: ${titleSize}px;">
+                <div class="el-text-inner">${escapeHtml(titleText)}</div>
             </div>
-            <div style="position: absolute; left: ${pos.subtitle ? pos.subtitle.x : 50}%; top: ${pos.subtitle ? pos.subtitle.y : 35}%; transform: translate(-50%, -50%); font-family: 'Sarabun', 'Prompt', sans-serif; font-size: ${subtitleSize}px; color: #64748B; text-align:center; width: 100%; white-space: pre-line; word-break: break-word;">
-                ${escapeHtml(subtitleText)}
+            <div class="cert-element el-subtitle" style="left: ${pos.subtitle.x}%; top: ${pos.subtitle.y}%; font-size: ${subtitleSize}px;">
+                <div class="el-text-inner">${escapeHtml(subtitleText)}</div>
             </div>
-            <div style="position: absolute; left: ${pos.recipient ? pos.recipient.x : 50}%; top: ${pos.recipient ? pos.recipient.y : 45}%; transform: translate(-50%, -50%); font-family: 'Prompt', 'Sarabun', sans-serif; font-size: ${recipientSize}px; font-weight: 700; color: #4F46E5; border-bottom: 2px solid #C7D2FE; padding-bottom: 4px; min-width: 280px; text-align:center; white-space: pre-line; word-break: break-word;">
-                ${escapeHtml(recipientText)}
+            <div class="cert-element el-recipient" style="left: ${pos.recipient.x}%; top: ${pos.recipient.y}%; font-size: ${recipientSize}px;">
+                <div class="el-text-inner">${escapeHtml(recipientText)}</div>
             </div>
-            <div style="position: absolute; left: ${pos.body ? pos.body.x : 50}%; top: ${pos.body ? pos.body.y : 58}%; transform: translate(-50%, -50%); font-family: 'Sarabun', 'Prompt', sans-serif; font-size: ${bodySize}px; color: #334155; width: 620px; line-height: 1.6; text-align:center; white-space: pre-line; word-break: break-word;">
-                ${escapeHtml(bodyText)}
+            <div class="cert-element el-body" style="left: ${pos.body.x}%; top: ${pos.body.y}%; font-size: ${bodySize}px;">
+                <div class="el-text-inner">${escapeHtml(bodyText)}</div>
             </div>
-            <div style="position: absolute; left: ${pos.date ? pos.date.x : 50}%; top: ${pos.date ? pos.date.y : 70}%; transform: translate(-50%, -50%); font-family: 'Sarabun', 'Prompt', sans-serif; font-size: ${dateSize}px; color: #64748B; text-align:center; width: 100%; white-space: pre-line; word-break: break-word;">
-                ${escapeHtml(dateText)}
+            <div class="cert-element el-date" style="left: ${pos.date.x}%; top: ${pos.date.y}%; font-size: ${dateSize}px;">
+                <div class="el-text-inner">${escapeHtml(dateText)}</div>
             </div>
-            ${signatureHtml}
-            <div style="position: absolute; left: ${pos.issuer ? pos.issuer.x : 50}%; top: ${pos.issuer ? pos.issuer.y : 89}%; transform: translate(-50%, -50%); text-align:center; white-space: pre-line; word-break: break-word;">
-                <div style="font-family: 'Sarabun', 'Prompt', sans-serif; font-size: ${issuerSize}px; font-weight: 600; color: #1E293B; white-space: pre-line;">${escapeHtml(issuerName)}</div>
-                <div style="font-family: 'Sarabun', 'Prompt', sans-serif; font-size: ${issuerTitleSize}px; color: #64748B; margin-top: 2px; white-space: pre-line;">${escapeHtml(issuerTitle)}</div>
+            ${cert.signature_url ? `
+            <div class="cert-element el-signature" style="left: ${pos.signature.x}%; top: ${pos.signature.y}%;">
+                <div style="height: ${signatureSize}px; display: flex; align-items: center; justify-content: center;">
+                    ${signatureInner}
+                </div>
+            </div>` : ''}
+            <div class="cert-element el-issuer" style="left: ${pos.issuer.x}%; top: ${pos.issuer.y}%; font-size: ${issuerSize}px;">
+                <div class="el-text-inner el-issuer-name">${escapeHtml(issuerName)}</div>
+                <div class="el-text-inner el-issuer-title" style="font-size: ${issuerTitleSize}px; margin-top: 2px;">${escapeHtml(issuerTitle)}</div>
             </div>
         `;
 
-        document.body.appendChild(exportDiv);
+        renderWrapper.appendChild(sheet);
+        document.body.appendChild(renderWrapper);
 
         try {
-            const canvas = await html2canvas(exportDiv, {
-                scale: 2.857,
+            // Wait for all web fonts to load completely
+            if (document.fonts && document.fonts.ready) {
+                await document.fonts.ready;
+            }
+            try {
+                if (document.fonts && document.fonts.load) {
+                    await Promise.all([
+                        document.fonts.load('700 34px "Prompt"'),
+                        document.fonts.load('500 17px "Sarabun"'),
+                        document.fonts.load('700 28px "Prompt"'),
+                        document.fonts.load('400 15px "Sarabun"'),
+                        document.fonts.load('600 15px "Sarabun"')
+                    ]);
+                }
+            } catch (fontErr) {}
+
+            // Wait for all images in sheet to finish loading
+            const imgs = Array.from(sheet.querySelectorAll('img'));
+            await Promise.all(imgs.map(img => {
+                if (img.complete) return Promise.resolve();
+                return new Promise(resolve => {
+                    img.onload = resolve;
+                    img.onerror = resolve;
+                });
+            }));
+
+            const canvas = await html2canvas(sheet, {
+                scale: 3,
                 useCORS: true,
                 allowTaint: true,
                 logging: false,
                 width: 840,
                 height: 594,
+                x: 0,
+                y: 0,
                 scrollX: 0,
                 scrollY: 0,
                 backgroundColor: '#FFFFFF',
@@ -588,8 +613,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 windowHeight: 594
             });
 
-            if (document.body.contains(exportDiv)) {
-                document.body.removeChild(exportDiv);
+            if (document.body.contains(renderWrapper)) {
+                document.body.removeChild(renderWrapper);
             }
 
             const pngDataUrl = canvas.toDataURL('image/png', 1.0);
@@ -636,7 +661,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const pdf = new jsPDFConstructor({
                     orientation: 'landscape',
                     unit: 'mm',
-                    format: 'a4'
+                    format: 'a4',
+                    compress: true
                 });
                 pdf.addImage(pngDataUrl, 'PNG', 0, 0, 297, 210, undefined, 'FAST');
                 pdf.save(`${safeFileName}.pdf`);
@@ -673,8 +699,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (err) {
             console.error('PDF/Image error:', err);
-            if (document.body.contains(exportDiv)) {
-                document.body.removeChild(exportDiv);
+            if (document.body.contains(renderWrapper)) {
+                document.body.removeChild(renderWrapper);
             }
             alert('เกิดข้อผิดพลาดในการสร้างเกียรติบัตร');
         } finally {

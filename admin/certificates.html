@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ออกเกียรติบัตร - ระบบประเมินความพึงพอใจ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/admin.css?v=2.4">
     <style>
@@ -114,7 +117,7 @@
         }
 
         /* The Visual Certificate Sheet (A4 Landscape aspect ratio: 297mm x 210mm ~ 840px x 594px) */
-        #certSheet {
+        #certSheet, .cert-sheet-render {
             width: 840px;
             height: 594px;
             position: relative;
@@ -125,38 +128,100 @@
             user-select: none;
             transform-origin: top center;
             transition: box-shadow 0.2s;
+            box-sizing: border-box;
         }
 
-        /* Certificate Background Presets */
+        /* Certificate Background Presets - Designed for 100% html2canvas compatibility without buggy outline-offset */
         .cert-bg-gold-luxury {
             background: radial-gradient(circle at center, #FFFFFF 0%, #FFFDF5 60%, #FEF9C3 100%);
-            border: 18px double #D97706;
-            outline: 2px solid #B45309;
-            outline-offset: -10px;
+            border: 16px double #D97706;
+            position: relative;
         }
+        .cert-bg-gold-luxury::before {
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            right: 6px;
+            bottom: 6px;
+            border: 1.5px solid #B45309;
+            pointer-events: none;
+            box-sizing: border-box;
+        }
+
         .cert-bg-blue-modern {
             background: linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 50%, #E0E7FF 100%);
             border: 16px solid #3B82F6;
-            outline: 2px dashed #1D4ED8;
-            outline-offset: -8px;
+            position: relative;
         }
+        .cert-bg-blue-modern::before {
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            right: 6px;
+            bottom: 6px;
+            border: 2px dashed #1D4ED8;
+            pointer-events: none;
+            box-sizing: border-box;
+        }
+
         .cert-bg-emerald-green {
             background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 60%, #BBF7D0 100%);
-            border: 18px double #059669;
-            outline: 2px solid #047857;
-            outline-offset: -10px;
+            border: 16px double #059669;
+            position: relative;
         }
+        .cert-bg-emerald-green::before {
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            right: 6px;
+            bottom: 6px;
+            border: 1.5px solid #047857;
+            pointer-events: none;
+            box-sizing: border-box;
+        }
+
         .cert-bg-purple-regal {
             background: linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 60%, #E9D5FF 100%);
-            border: 18px double #7C3AED;
-            outline: 2px solid #6D28D9;
-            outline-offset: -10px;
+            border: 16px double #7C3AED;
+            position: relative;
         }
+        .cert-bg-purple-regal::before {
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            right: 6px;
+            bottom: 6px;
+            border: 1.5px solid #6D28D9;
+            pointer-events: none;
+            box-sizing: border-box;
+        }
+
         .cert-bg-minimal-white {
             background: #FFFFFF;
             border: 8px solid #1E293B;
-            outline: 1px solid #94A3B8;
-            outline-offset: -4px;
+            position: relative;
+        }
+        .cert-bg-minimal-white::before {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            right: 4px;
+            bottom: 4px;
+            border: 1px solid #94A3B8;
+            pointer-events: none;
+            box-sizing: border-box;
+        }
+
+        .cert-bg-custom {
+            background-color: #FFFFFF;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
         }
 
         /* Draggable & Editable Element on Certificate */
@@ -813,7 +878,7 @@
     <!-- Scripts: html2canvas & jsPDF for 100% Full-bleed A4 PDF Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="js/admin.js?v=2.3"></script>
-    <script src="js/certificates.js?v=3.3"></script>
+    <script src="js/admin.js?v=2.4"></script>
+    <script src="js/certificates.js?v=3.5"></script>
 </body>
 </html>

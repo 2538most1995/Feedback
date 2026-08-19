@@ -1062,6 +1062,10 @@ async function previewCertificatePdf() {
         return;
     }
 
+    // Create an offscreen wrapper container with top:0, left:0, opacity:0 to avoid negative coordinate calculation bugs in html2canvas
+    const renderWrapper = document.createElement('div');
+    renderWrapper.style.cssText = 'position: fixed; top: 0; left: 0; width: 840px; height: 594px; z-index: -9999; opacity: 0; pointer-events: none; overflow: hidden; margin: 0; padding: 0;';
+
     // Clone the exact visual certificate sheet currently on screen
     const clone = certSheet.cloneNode(true);
     clone.id = 'certSheetPdfClone';
@@ -1077,7 +1081,15 @@ async function previewCertificatePdf() {
         el.classList.remove('selected', 'is-editing');
         el.style.outline = 'none';
         el.style.boxShadow = 'none';
+        el.style.cursor = 'default';
     });
+
+    // Remove signature fallback placeholder if no signature uploaded
+    const sigFallback = clone.querySelector('#signatureFallbackBox');
+    const sigImg = clone.querySelector('#signatureImg');
+    if (sigFallback && (!sigImg || !sigImg.src || sigImg.src.trim() === '' || sigImg.style.display === 'none')) {
+        sigFallback.remove();
+    }
 
     // Remove empty/hidden image tags so html2canvas doesn't fail on empty sources
     clone.querySelectorAll('img').forEach(img => {
@@ -1088,37 +1100,62 @@ async function previewCertificatePdf() {
     });
 
     // Reset zoom transform and enforce pristine unscaled 840x594 A4 Landscape aspect ratio
-    clone.style.position = 'fixed';
-    clone.style.left = '-99999px';
+    clone.style.position = 'relative';
+    clone.style.left = '0';
     clone.style.top = '0';
-    clone.style.zIndex = '99999';
     clone.style.width = '840px';
     clone.style.height = '594px';
     clone.style.transform = 'none';
     clone.style.margin = '0';
-    clone.style.opacity = '1';
-    clone.style.visibility = 'visible';
     clone.style.boxShadow = 'none';
+    clone.style.borderRadius = '0';
 
-    document.body.appendChild(clone);
+    renderWrapper.appendChild(clone);
+    document.body.appendChild(renderWrapper);
 
     try {
         if (typeof html2canvas === 'undefined') {
             throw new Error('ไม่พบไลบรารี html2canvas ในระบบ');
         }
 
+        // Wait for all web fonts to load completely
         if (document.fonts && document.fonts.ready) {
             await document.fonts.ready;
         }
+        try {
+            if (document.fonts && document.fonts.load) {
+                await Promise.all([
+                    document.fonts.load('700 34px "Prompt"'),
+                    document.fonts.load('500 17px "Sarabun"'),
+                    document.fonts.load('700 28px "Prompt"'),
+                    document.fonts.load('400 15px "Sarabun"'),
+                    document.fonts.load('600 15px "Sarabun"')
+                ]);
+            }
+        } catch (fontErr) {
+            console.warn('Font preload notice:', fontErr);
+        }
 
-        // Render at 300 DPI high-definition scale (840 * 2.857 = 2400px x 1697px)
+        // Wait for all images in clone to finish loading
+        const imgs = Array.from(clone.querySelectorAll('img'));
+        await Promise.all(imgs.map(img => {
+            if (img.complete) return Promise.resolve();
+            return new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve;
+            });
+        }));
+
+        // Render at 300 DPI high-definition scale (840 * 3 = 2520px x 1782px)
         const canvas = await html2canvas(clone, {
-            scale: 2.857,
+            scale: 3,
             useCORS: true,
             allowTaint: true,
             logging: false,
             width: 840,
             height: 594,
+            x: 0,
+            y: 0,
             scrollX: 0,
             scrollY: 0,
             backgroundColor: '#FFFFFF',
@@ -1126,7 +1163,7 @@ async function previewCertificatePdf() {
             windowHeight: 594
         });
 
-        const imgData = canvas.toDataURL('image/jpeg', 0.98);
+        const imgData = canvas.toDataURL('image/png', 1.0);
         const jsPDFConstructor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : (window.jsPDF || null);
         
         if (!jsPDFConstructor) {
@@ -1136,14 +1173,17 @@ async function previewCertificatePdf() {
         const pdf = new jsPDFConstructor({
             orientation: 'landscape',
             unit: 'mm',
-            format: 'a4'
+            format: 'a4',
+            compress: true
         });
 
         // Exact 100% full bleed A4: 297mm x 210mm
-        pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210, undefined, 'FAST');
+        pdf.addImage(imgData, 'PNG', 0, 0, 297, 210, undefined, 'FAST');
         pdf.save(`Certificate_Preview_${currentSurveyId || 'survey'}.pdf`);
 
-        document.body.removeChild(clone);
+        if (document.body.contains(renderWrapper)) {
+            document.body.removeChild(renderWrapper);
+        }
         setButtonLoading(previewBtn, false);
         setButtonLoading(mobilePreviewBtn, false);
         showToast('ดาวน์โหลดไฟล์ PDF ตรงกับที่พรีวิว 100% สำเร็จ', 'success');
@@ -1151,8 +1191,8 @@ async function previewCertificatePdf() {
         setButtonLoading(previewBtn, false);
         setButtonLoading(mobilePreviewBtn, false);
         console.error('PDF error:', err);
-        if (document.body.contains(clone)) {
-            document.body.removeChild(clone);
+        if (document.body.contains(renderWrapper)) {
+            document.body.removeChild(renderWrapper);
         }
         showToast('เกิดข้อผิดพลาดในการสร้างไฟล์ PDF: ' + (err.message || ''), 'error');
     }
