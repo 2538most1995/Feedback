@@ -1047,7 +1047,7 @@ async function previewCertificatePdf() {
     }
 
     syncAllUIInputsToConfig();
-    deselectElement();
+    selectElement(null);
     stopAllInlineEditing();
 
     const previewBtn = document.getElementById('previewCertBtn');
