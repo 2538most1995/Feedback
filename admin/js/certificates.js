@@ -989,6 +989,37 @@ function syncAllUIInputsToConfig() {
     if (issuerTitleIn) certConfig.issuer_title = issuerTitleIn.value;
     const enableToggle = document.getElementById('enableCertToggle');
     if (enableToggle) certConfig.is_enabled = enableToggle.checked ? 1 : 0;
+
+    syncElementsConfigFromDOM();
+}
+
+function syncElementsConfigFromDOM() {
+    if (!certConfig.elements_config) certConfig.elements_config = {};
+    const keys = ['logo', 'title', 'subtitle', 'recipient', 'body', 'date', 'signature', 'issuer'];
+    keys.forEach(key => {
+        const el = document.getElementById(`el_${key}`);
+        if (el) {
+            const left = parseFloat(el.style.left) || (defaultPositions[key] ? defaultPositions[key].x : 50);
+            const top = parseFloat(el.style.top) || (defaultPositions[key] ? defaultPositions[key].y : 50);
+            let size = defaultPositions[key] ? defaultPositions[key].size : 20;
+
+            if (key === 'logo') {
+                const wrap = document.getElementById('logoWrapper');
+                size = wrap ? (parseInt(wrap.style.width) || size) : size;
+            } else if (key === 'signature') {
+                const box = document.getElementById('signatureImgBox');
+                size = box ? (parseInt(box.style.height) || size) : size;
+            } else {
+                size = parseInt(el.style.fontSize) || size;
+            }
+
+            certConfig.elements_config[key] = {
+                x: Math.round(left * 10) / 10,
+                y: Math.round(top * 10) / 10,
+                size: size
+            };
+        }
+    });
 }
 
 // Save Certificate Configuration to Database
