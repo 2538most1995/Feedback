@@ -4,6 +4,18 @@
 let currentSurveyId = null;
 let allSurveys = [];
 let currentSelectedKey = null;
+let currentEditingStyleType = null;
+let lastTextSelectionRange = null;
+
+const textStyleDefinitions = {
+    title: { elementId: 'dispTitle', configKey: 'title', colorKey: 'color', rangesKey: 'color_ranges', defaultColor: '#1E293B' },
+    subtitle: { elementId: 'dispSubtitle', configKey: 'subtitle', colorKey: 'color', rangesKey: 'color_ranges', defaultColor: '#64748B' },
+    recipient: { elementId: 'dispRecipient', configKey: 'recipient', colorKey: 'color', rangesKey: 'color_ranges', defaultColor: '#4F46E5' },
+    body: { elementId: 'dispBody', configKey: 'body', colorKey: 'color', rangesKey: 'color_ranges', defaultColor: '#334155' },
+    date: { elementId: 'dispDate', configKey: 'date', colorKey: 'color', rangesKey: 'color_ranges', defaultColor: '#64748B' },
+    issuerName: { elementId: 'dispIssuerName', configKey: 'issuer', colorKey: 'name_color', rangesKey: 'name_color_ranges', defaultColor: '#1E293B' },
+    issuerTitle: { elementId: 'dispIssuerTitle', configKey: 'issuer', colorKey: 'title_color', rangesKey: 'title_color_ranges', defaultColor: '#64748B' }
+};
 
 let certConfig = {
     is_enabled: 0,
@@ -50,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initDragAndDrop();
     initMouseResize();
     initInlineEditing();
+    document.addEventListener('selectionchange', rememberCertificateTextSelection);
 });
 
 let certSurveyCombobox = null;
@@ -412,13 +425,14 @@ function applyConfigToUI() {
     document.getElementById('inputIssuerTitle').value = certConfig.issuer_title || '';
 
     // Render texts on sheet
-    updateText('title', certConfig.title);
-    updateText('subtitle', certConfig.subtitle);
-    updateText('recipient', certConfig.recipient_name);
-    updateText('body', certConfig.body_text);
-    updateText('date', certConfig.issued_date);
-    updateText('issuerName', certConfig.issuer_name);
-    updateText('issuerTitle', certConfig.issuer_title);
+    updateText('title', certConfig.title, true);
+    updateText('subtitle', certConfig.subtitle, true);
+    updateText('recipient', certConfig.recipient_name, true);
+    updateText('body', certConfig.body_text, true);
+    updateText('date', certConfig.issued_date, true);
+    updateText('issuerName', certConfig.issuer_name, true);
+    updateText('issuerTitle', certConfig.issuer_title, true);
+    renderAllStyledText();
 
     // Render positions & font sizes
     applyElementPositions(certConfig.elements_config || defaultPositions);
@@ -747,6 +761,13 @@ function selectElement(el) {
     if (floatEditBtn) {
         floatEditBtn.style.display = (currentSelectedKey === 'logo' || currentSelectedKey === 'signature') ? 'none' : 'inline-flex';
     }
+    const floatingColorControl = document.getElementById('floatingColorControl');
+    if (floatingColorControl) {
+        floatingColorControl.style.display = (currentSelectedKey === 'logo' || currentSelectedKey === 'signature') ? 'none' : 'inline-flex';
+    }
+
+    currentEditingStyleType = currentSelectedKey === 'issuer' ? 'issuerName' : currentSelectedKey;
+    syncCertificateColorControls(currentEditingStyleType);
 
     updateFloatingToolbarPosition(el);
 }
@@ -758,8 +779,259 @@ function onCanvasClick(e) {
     }
 }
 
+function normalizeCertificateTextColor(color, fallback = '#1E293B') {
+    return /^#[0-9A-F]{6}$/i.test(String(color || '')) ? String(color).toUpperCase() : fallback;
+}
+
+function getTextStyleDefinition(type) {
+    return textStyleDefinitions[type] || null;
+}
+
+function getTextStyleConfig(type, create = false) {
+    const definition = getTextStyleDefinition(type);
+    if (!definition) return null;
+    if (!certConfig.elements_config) {
+        if (!create) return null;
+        certConfig.elements_config = {};
+    }
+    if (!certConfig.elements_config[definition.configKey]) {
+        if (!create) return null;
+        certConfig.elements_config[definition.configKey] = { ...(defaultPositions[definition.configKey] || {}) };
+    }
+    return certConfig.elements_config[definition.configKey];
+}
+
+function getRawTextForStyle(type) {
+    const defaults = {
+        title: 'เกียรติบัตร',
+        subtitle: 'มอบให้ไว้เพื่อแสดงว่า',
+        recipient: '{name}',
+        body: '',
+        date: '{date}',
+        issuerName: '',
+        issuerTitle: ''
+    };
+    const values = {
+        title: certConfig.title,
+        subtitle: certConfig.subtitle,
+        recipient: certConfig.recipient_name,
+        body: certConfig.body_text,
+        date: certConfig.issued_date,
+        issuerName: certConfig.issuer_name,
+        issuerTitle: certConfig.issuer_title
+    };
+    return String(values[type] ?? defaults[type] ?? '');
+}
+
+function getStyleTypeFromTextElement(element) {
+    if (!element) return null;
+    return Object.keys(textStyleDefinitions).find(type => textStyleDefinitions[type].elementId === element.id) || null;
+}
+
+function getSafeColorRanges(type, textLength) {
+    const definition = getTextStyleDefinition(type);
+    const config = getTextStyleConfig(type, false);
+    const ranges = config && Array.isArray(config[definition.rangesKey]) ? config[definition.rangesKey] : [];
+    return ranges
+        .map(range => ({
+            start: Math.max(0, Math.min(textLength, Number(range.start) || 0)),
+            end: Math.max(0, Math.min(textLength, Number(range.end) || 0)),
+            color: normalizeCertificateTextColor(range.color, definition.defaultColor)
+        }))
+        .filter(range => range.end > range.start)
+        .sort((a, b) => a.start - b.start || a.end - b.end);
+}
+
+function renderMappedPlainText(text, sourceStart, color) {
+    if (!text) return '';
+    let html = '';
+    let lineStart = 0;
+    const lines = text.split('\n');
+    lines.forEach((line, index) => {
+        if (line) {
+            const start = sourceStart + lineStart;
+            const end = start + line.length;
+            html += `<span data-source-start="${start}" data-source-end="${end}" style="color:${color};">${escapeHtml(line)}</span>`;
+        }
+        if (index < lines.length - 1) html += '<br>';
+        lineStart += line.length + 1;
+    });
+    return html;
+}
+
+function renderMappedTextSegment(text, sourceStart, color) {
+    const tokenPattern = /\{(name|date)\}/g;
+    let html = '';
+    let cursor = 0;
+    let match;
+    while ((match = tokenPattern.exec(text)) !== null) {
+        html += renderMappedPlainText(text.slice(cursor, match.index), sourceStart + cursor, color);
+        const tokenStart = sourceStart + match.index;
+        const tokenEnd = tokenStart + match[0].length;
+        const displayValue = match[1] === 'name' ? 'นายสมศักดิ์ รักการเรียน' : getSampleThaiDate();
+        html += `<span data-cert-token="${match[1]}" data-source-start="${tokenStart}" data-source-end="${tokenEnd}" style="color:${color};">${escapeHtml(displayValue)}</span>`;
+        cursor = match.index + match[0].length;
+    }
+    html += renderMappedPlainText(text.slice(cursor), sourceStart + cursor, color);
+    return html;
+}
+
+function renderStyledText(type) {
+    const definition = getTextStyleDefinition(type);
+    if (!definition) return;
+    const target = document.getElementById(definition.elementId);
+    if (!target) return;
+
+    const rawText = getRawTextForStyle(type);
+    const config = getTextStyleConfig(type, false) || {};
+    const baseColor = normalizeCertificateTextColor(config[definition.colorKey], definition.defaultColor);
+    const ranges = getSafeColorRanges(type, rawText.length);
+    const boundaries = new Set([0, rawText.length]);
+    ranges.forEach(range => {
+        boundaries.add(range.start);
+        boundaries.add(range.end);
+    });
+
+    const points = Array.from(boundaries).sort((a, b) => a - b);
+    let html = '';
+    for (let index = 0; index < points.length - 1; index++) {
+        const start = points[index];
+        const end = points[index + 1];
+        const activeRange = ranges.find(range => range.start <= start && range.end >= end);
+        html += renderMappedTextSegment(rawText.slice(start, end), start, activeRange ? activeRange.color : baseColor);
+    }
+
+    target.style.color = baseColor;
+    target.innerHTML = html;
+}
+
+function renderAllStyledText() {
+    Object.keys(textStyleDefinitions).forEach(renderStyledText);
+    syncCertificateColorControls();
+}
+
+function syncCertificateColorControls(type = null) {
+    const types = type ? [type] : Object.keys(textStyleDefinitions);
+    types.forEach(styleType => {
+        const definition = getTextStyleDefinition(styleType);
+        const config = getTextStyleConfig(styleType, false) || {};
+        const color = normalizeCertificateTextColor(config[definition.colorKey], definition.defaultColor);
+        const input = document.getElementById(`textColor_${styleType}`);
+        if (input) input.value = color;
+        if (styleType === (currentEditingStyleType || currentSelectedKey)) {
+            const floatingInput = document.getElementById('floatingTextColor');
+            if (floatingInput) floatingInput.value = color;
+        }
+    });
+}
+
+function clearTextColorRanges(type) {
+    const definition = getTextStyleDefinition(type);
+    const config = getTextStyleConfig(type, true);
+    if (definition && config) config[definition.rangesKey] = [];
+}
+
+function setWholeTextColor(type, color) {
+    const definition = getTextStyleDefinition(type);
+    if (!definition) return;
+    const config = getTextStyleConfig(type, true);
+    config[definition.colorKey] = normalizeCertificateTextColor(color, definition.defaultColor);
+    config[definition.rangesKey] = [];
+    renderStyledText(type);
+    syncCertificateColorControls(type);
+}
+
+function rememberCertificateTextSelection() {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
+    const range = selection.getRangeAt(0);
+    const target = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+        ? range.commonAncestorContainer.closest('.el-text-inner')
+        : range.commonAncestorContainer.parentElement?.closest('.el-text-inner');
+    if (!target || target.getAttribute('contenteditable') !== 'true') return;
+    currentEditingStyleType = getStyleTypeFromTextElement(target);
+    lastTextSelectionRange = range.cloneRange();
+}
+
+function findMappedSpan(node, direction = 'first') {
+    if (!node) return null;
+    if (node.nodeType === Node.TEXT_NODE) return node.parentElement?.closest('[data-source-start]') || null;
+    if (node.nodeType !== Node.ELEMENT_NODE) return null;
+    if (node.hasAttribute('data-source-start')) return node;
+    const mapped = node.querySelectorAll('[data-source-start]');
+    return mapped.length ? mapped[direction === 'last' ? mapped.length - 1 : 0] : null;
+}
+
+function selectionBoundaryToSourceOffset(container, offset, isEnd, target, rawLength) {
+    if (container.nodeType === Node.TEXT_NODE) {
+        const span = container.parentElement?.closest('[data-source-start]');
+        if (span && target.contains(span)) {
+            const start = Number(span.dataset.sourceStart) || 0;
+            const end = Number(span.dataset.sourceEnd) || start;
+            if (span.dataset.certToken) return isEnd ? end : start;
+            return Math.max(start, Math.min(end, start + offset));
+        }
+    }
+
+    if (container.nodeType === Node.ELEMENT_NODE) {
+        const children = Array.from(container.childNodes);
+        const candidate = isEnd ? children[Math.max(0, offset - 1)] : children[Math.min(offset, children.length - 1)];
+        const mapped = findMappedSpan(candidate, isEnd ? 'last' : 'first');
+        if (mapped && target.contains(mapped)) {
+            return Number(mapped.dataset[isEnd ? 'sourceEnd' : 'sourceStart']) || 0;
+        }
+    }
+    return isEnd ? rawLength : 0;
+}
+
+function addTextColorRange(type, start, end, color) {
+    const definition = getTextStyleDefinition(type);
+    const config = getTextStyleConfig(type, true);
+    if (!definition || !config || end <= start) return;
+    const existing = getSafeColorRanges(type, getRawTextForStyle(type).length);
+    const next = [];
+    existing.forEach(range => {
+        if (range.end <= start || range.start >= end) {
+            next.push(range);
+            return;
+        }
+        if (range.start < start) next.push({ ...range, end: start });
+        if (range.end > end) next.push({ ...range, start: end });
+    });
+    next.push({ start, end, color: normalizeCertificateTextColor(color, definition.defaultColor) });
+    config[definition.rangesKey] = next.sort((a, b) => a.start - b.start);
+}
+
+function applySelectedTextColor(color) {
+    const styleType = currentEditingStyleType;
+    const definition = getTextStyleDefinition(styleType);
+    const target = definition ? document.getElementById(definition.elementId) : null;
+    if (styleType && target && lastTextSelectionRange) {
+        const rawLength = getRawTextForStyle(styleType).length;
+        const start = selectionBoundaryToSourceOffset(lastTextSelectionRange.startContainer, lastTextSelectionRange.startOffset, false, target, rawLength);
+        const end = selectionBoundaryToSourceOffset(lastTextSelectionRange.endContainer, lastTextSelectionRange.endOffset, true, target, rawLength);
+        if (end > start) {
+            addTextColorRange(styleType, start, end, color);
+            renderStyledText(styleType);
+            syncCertificateColorControls(styleType);
+            lastTextSelectionRange = null;
+            showToast('เปลี่ยนสีเฉพาะข้อความที่เลือกแล้ว', 'success');
+            return;
+        }
+    }
+
+    if (currentSelectedKey === 'issuer') {
+        setWholeTextColor('issuerName', color);
+        setWholeTextColor('issuerTitle', color);
+    } else if (getTextStyleDefinition(currentSelectedKey)) {
+        setWholeTextColor(currentSelectedKey, color);
+    } else {
+        showToast('กรุณาเลือกข้อความ หรือดับเบิลคลิกแล้วลากคลุมข้อความก่อนเปลี่ยนสี', 'warning');
+    }
+}
+
 // Update text from sidebar inputs into canvas and config
-function updateText(type, val) {
+function updateText(type, val, preserveFormatting = false) {
     const formattedThaiDate = getSampleThaiDate();
 
     if (type === 'title') {
@@ -794,6 +1066,12 @@ function updateText(type, val) {
         const target = document.getElementById('dispIssuerTitle');
         if (target && target !== document.activeElement) target.innerText = val;
     }
+
+    if (!preserveFormatting && getTextStyleDefinition(type)) clearTextColorRanges(type);
+    const definition = getTextStyleDefinition(type);
+    const styledTarget = definition ? document.getElementById(definition.elementId) : null;
+    if (styledTarget && styledTarget !== document.activeElement) renderStyledText(type);
+    syncCertificateColorControls(type);
 }
 
 // ================= ROBUST INLINE DIRECT CANVAS EDITING (DOUBLE CLICK & BUTTON) ================= //
@@ -806,15 +1084,17 @@ function startInlineEditing(targetTextEl) {
     if (key === 'logo' || key === 'signature') return;
 
     stopAllInlineEditing();
+    selectElement(parentEl);
+    currentEditingStyleType = getStyleTypeFromTextElement(targetTextEl);
+    lastTextSelectionRange = null;
 
     parentEl.classList.add('is-editing');
     targetTextEl.setAttribute('contenteditable', 'true');
     targetTextEl.style.userSelect = 'text';
     targetTextEl.style.webkitUserSelect = 'text';
 
-    // Hide floating toolbar while editing
-    const bar = document.getElementById('elementFloatingBar');
-    if (bar) bar.style.display = 'none';
+    updateFloatingToolbarPosition(parentEl);
+    syncCertificateColorControls(currentEditingStyleType);
 
     targetTextEl.focus();
 
@@ -835,6 +1115,8 @@ function stopAllInlineEditing() {
         el.style.userSelect = '';
         el.style.webkitUserSelect = '';
     });
+    currentEditingStyleType = null;
+    lastTextSelectionRange = null;
 }
 
 function editSelectedElement() {
@@ -889,6 +1171,8 @@ function initInlineEditing() {
             // Sync text live when user types
             innerText.addEventListener('input', () => {
                 const text = innerText.innerText;
+                const styleType = getStyleTypeFromTextElement(innerText);
+                if (styleType) clearTextColorRanges(styleType);
                 if (key === 'title') {
                     certConfig.title = text;
                     document.getElementById('inputTitle').value = text;
@@ -917,10 +1201,12 @@ function initInlineEditing() {
             });
 
             innerText.addEventListener('blur', () => {
+                const styleType = getStyleTypeFromTextElement(innerText);
                 innerText.setAttribute('contenteditable', 'false');
                 innerText.style.userSelect = '';
                 innerText.style.webkitUserSelect = '';
                 parentEl.classList.remove('is-editing');
+                if (styleType) renderStyledText(styleType);
             });
 
             // Prevent drag from starting while typing
@@ -945,7 +1231,10 @@ function toggleCertEnabled() {
 }
 
 function resetElementPositions() {
-    certConfig.elements_config = JSON.parse(JSON.stringify(defaultPositions));
+    const currentConfig = certConfig.elements_config || {};
+    certConfig.elements_config = Object.fromEntries(
+        Object.keys(defaultPositions).map(key => [key, { ...(currentConfig[key] || {}), ...defaultPositions[key] }])
+    );
     applyElementPositions(certConfig.elements_config);
     showToast('รีเซ็ตตำแหน่งและขนาดเริ่มต้นเรียบร้อยแล้ว', 'info');
 }
@@ -1232,6 +1521,7 @@ function syncElementsConfigFromDOM() {
             }
 
             certConfig.elements_config[key] = {
+                ...(certConfig.elements_config[key] || {}),
                 x: Math.round(left * 10) / 10,
                 y: Math.round(top * 10) / 10,
                 size: size

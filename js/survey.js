@@ -438,6 +438,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function normalizeCertificateColor(color, fallback) {
+        return /^#[0-9A-F]{6}$/i.test(String(color || '')) ? String(color).toUpperCase() : fallback;
+    }
+
+    function renderCertificateStyledText(rawValue, styleConfig, colorKey, rangesKey, defaultColor, replacements = {}) {
+        const text = String(rawValue ?? '');
+        const baseColor = normalizeCertificateColor(styleConfig && styleConfig[colorKey], defaultColor);
+        const rawRanges = styleConfig && Array.isArray(styleConfig[rangesKey]) ? styleConfig[rangesKey] : [];
+        const ranges = rawRanges
+            .map(range => ({
+                start: Math.max(0, Math.min(text.length, Number(range.start) || 0)),
+                end: Math.max(0, Math.min(text.length, Number(range.end) || 0)),
+                color: normalizeCertificateColor(range.color, baseColor)
+            }))
+            .filter(range => range.end > range.start)
+            .sort((a, b) => a.start - b.start || a.end - b.end);
+        const boundaries = new Set([0, text.length]);
+        ranges.forEach(range => {
+            boundaries.add(range.start);
+            boundaries.add(range.end);
+        });
+        const points = Array.from(boundaries).sort((a, b) => a - b);
+        let html = '';
+        for (let index = 0; index < points.length - 1; index++) {
+            const start = points[index];
+            const end = points[index + 1];
+            const activeRange = ranges.find(range => range.start <= start && range.end >= end);
+            let content = escapeHtml(text.slice(start, end)).replace(/\n/g, '<br>');
+            content = content
+                .replace(/\{name\}/g, escapeHtml(replacements.name || ''))
+                .replace(/\{date\}/g, escapeHtml(replacements.date || ''));
+            html += `<span style="color:${activeRange ? activeRange.color : baseColor};">${content}</span>`;
+        }
+        return { html, color: baseColor };
+    }
+
     async function generateCertificate(cert, name, targetMode = 'pdf') {
         const downloadBtn = document.getElementById('downloadCertBtn');
         const downloadImgBtn = document.getElementById('downloadCertImgBtn');
@@ -496,6 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const pos = {};
         Object.keys(defaultPos).forEach(k => {
             pos[k] = {
+                ...(rawConfig[k] || {}),
                 x: (rawConfig[k] && rawConfig[k].x !== undefined) ? Number(rawConfig[k].x) : defaultPos[k].x,
                 y: (rawConfig[k] && rawConfig[k].y !== undefined) ? Number(rawConfig[k].y) : defaultPos[k].y,
                 size: (rawConfig[k] && rawConfig[k].size !== undefined) ? Number(rawConfig[k].size) : defaultPos[k].size
@@ -504,19 +541,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const titleText = cert.title || 'เกียรติบัตร';
         const subtitleText = cert.subtitle || 'มอบให้ไว้เพื่อแสดงว่า';
-        
-        let recipientText = cert.recipient_name || '{name}';
-        if (recipientText.includes('{name}')) {
-            recipientText = recipientText.replace(/{name}/g, name);
-        } else {
-            recipientText = name || recipientText;
-        }
-
-        let bodyText = (cert.body_text || '').replace(/{name}/g, name).replace(/{date}/g, formattedDate);
-        let dateText = (cert.issued_date || '{date}').replace(/{date}/g, formattedDate);
+        const recipientSource = (cert.recipient_name || '{name}').includes('{name}') ? (cert.recipient_name || '{name}') : '{name}';
+        const bodyText = cert.body_text || '';
+        const dateText = cert.issued_date || '{date}';
         const issuerName = cert.issuer_name || '';
         const issuerTitle = cert.issuer_title || '';
         const issuerTitleSize = Math.round(pos.issuer.size * 0.85);
+        const replacements = { name, date: formattedDate };
+        const styledTitle = renderCertificateStyledText(titleText, pos.title, 'color', 'color_ranges', '#1E293B', replacements);
+        const styledSubtitle = renderCertificateStyledText(subtitleText, pos.subtitle, 'color', 'color_ranges', '#64748B', replacements);
+        const styledRecipient = renderCertificateStyledText(recipientSource, pos.recipient, 'color', 'color_ranges', '#4F46E5', replacements);
+        const styledBody = renderCertificateStyledText(bodyText, pos.body, 'color', 'color_ranges', '#334155', replacements);
+        const styledDate = renderCertificateStyledText(dateText, pos.date, 'color', 'color_ranges', '#64748B', replacements);
+        const styledIssuerName = renderCertificateStyledText(issuerName, pos.issuer, 'name_color', 'name_color_ranges', '#1E293B', replacements);
+        const styledIssuerTitle = renderCertificateStyledText(issuerTitle, pos.issuer, 'title_color', 'title_color_ranges', '#64748B', replacements);
 
         const sheet = document.createElement('div');
         sheet.className = `cert-sheet-render cert-bg-${cert.bg_preset || 'gold-luxury'}`;
@@ -539,20 +577,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${logoInner}
                 </div>
             </div>
-            <div class="cert-element el-title" style="left: ${pos.title.x}%; top: ${pos.title.y}%; font-size: ${pos.title.size}px; color: #1E293B;">
-                <div class="el-text-inner" id="dispTitle">${escapeHtml(titleText)}</div>
+            <div class="cert-element el-title" style="left: ${pos.title.x}%; top: ${pos.title.y}%; font-size: ${pos.title.size}px; color: ${styledTitle.color};">
+                <div class="el-text-inner" id="dispTitle">${styledTitle.html}</div>
             </div>
-            <div class="cert-element el-subtitle" style="left: ${pos.subtitle.x}%; top: ${pos.subtitle.y}%; font-size: ${pos.subtitle.size}px; color: #64748B;">
-                <div class="el-text-inner" id="dispSubtitle">${escapeHtml(subtitleText)}</div>
+            <div class="cert-element el-subtitle" style="left: ${pos.subtitle.x}%; top: ${pos.subtitle.y}%; font-size: ${pos.subtitle.size}px; color: ${styledSubtitle.color};">
+                <div class="el-text-inner" id="dispSubtitle">${styledSubtitle.html}</div>
             </div>
-            <div class="cert-element el-recipient" style="left: ${pos.recipient.x}%; top: ${pos.recipient.y}%; font-size: ${pos.recipient.size}px; color: #4F46E5; border-bottom: 2px solid #C7D2FE; padding-bottom: 4px; min-width: 280px;">
-                <div class="el-text-inner" id="dispRecipient">${escapeHtml(recipientText)}</div>
+            <div class="cert-element el-recipient" style="left: ${pos.recipient.x}%; top: ${pos.recipient.y}%; font-size: ${pos.recipient.size}px; color: ${styledRecipient.color}; border-bottom: 2px solid #C7D2FE; padding-bottom: 4px; min-width: 280px;">
+                <div class="el-text-inner" id="dispRecipient">${styledRecipient.html}</div>
             </div>
-            <div class="cert-element el-body" style="left: ${pos.body.x}%; top: ${pos.body.y}%; font-size: ${pos.body.size}px; color: #334155; width: 620px;">
-                <div class="el-text-inner" id="dispBody">${escapeHtml(bodyText)}</div>
+            <div class="cert-element el-body" style="left: ${pos.body.x}%; top: ${pos.body.y}%; font-size: ${pos.body.size}px; color: ${styledBody.color}; width: 620px;">
+                <div class="el-text-inner" id="dispBody">${styledBody.html}</div>
             </div>
-            <div class="cert-element el-date" style="left: ${pos.date.x}%; top: ${pos.date.y}%; font-size: ${pos.date.size}px; color: #64748B;">
-                <div class="el-text-inner" id="dispDate">${escapeHtml(dateText)}</div>
+            <div class="cert-element el-date" style="left: ${pos.date.x}%; top: ${pos.date.y}%; font-size: ${pos.date.size}px; color: ${styledDate.color};">
+                <div class="el-text-inner" id="dispDate">${styledDate.html}</div>
             </div>
             ${cert.signature_url ? `
             <div class="cert-element el-signature" style="left: ${pos.signature.x}%; top: ${pos.signature.y}%;">
@@ -561,8 +599,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>` : ''}
             <div class="cert-element el-issuer" style="left: ${pos.issuer.x}%; top: ${pos.issuer.y}%; font-size: ${pos.issuer.size}px;">
-                <div class="el-text-inner el-issuer-name" id="dispIssuerName" style="color: #1E293B;">${escapeHtml(issuerName)}</div>
-                <div class="el-text-inner el-issuer-title" id="dispIssuerTitle" style="margin-top: 2px; font-size: ${issuerTitleSize}px; color: #64748B;">${escapeHtml(issuerTitle)}</div>
+                <div class="el-text-inner el-issuer-name" id="dispIssuerName" style="color: ${styledIssuerName.color};">${styledIssuerName.html}</div>
+                <div class="el-text-inner el-issuer-title" id="dispIssuerTitle" style="margin-top: 2px; font-size: ${issuerTitleSize}px; color: ${styledIssuerTitle.color};">${styledIssuerTitle.html}</div>
             </div>
         `;
 

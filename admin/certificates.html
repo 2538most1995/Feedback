@@ -25,6 +25,32 @@
             .certificate-template-fields {
                 grid-template-columns: 1fr !important;
             }
+            .certificate-color-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        .certificate-color-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #F8FAFC;
+            color: var(--text);
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+        .certificate-color-item input[type="color"] {
+            width: 36px;
+            height: 28px;
+            padding: 1px;
+            border: 1px solid #CBD5E1;
+            border-radius: 6px;
+            background: #FFFFFF;
+            cursor: pointer;
         }
 
         /* Certificate Settings Panel */
@@ -356,6 +382,25 @@
             padding: 0 6px;
             min-width: 46px;
             text-align: center;
+        }
+        .float-color-control {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: #FFFFFF;
+            font-size: 12px;
+            font-weight: 600;
+            padding-left: 6px;
+            border-left: 1px solid #475569;
+        }
+        .float-color-control input[type="color"] {
+            width: 30px;
+            height: 26px;
+            padding: 1px;
+            border: 1px solid #64748B;
+            border-radius: 6px;
+            background: #FFFFFF;
+            cursor: pointer;
         }
 
         /* 4 Corner Resize Handles */
@@ -752,9 +797,26 @@
                             </div>
                         </div>
 
+                        <!-- Text Colors -->
+                        <div class="settings-section">
+                            <div class="section-heading"><i class="fas fa-palette"></i> 4. สีตัวอักษร</div>
+                            <div class="form-hint" style="margin-bottom: 10px; background: #F0FDF4; color: #166534; padding: 8px 10px; border-radius: 8px; font-size: 0.78rem; line-height: 1.5;">
+                                เลือกสีด้านล่างเพื่อเปลี่ยนทั้งข้อความ หรือดับเบิลคลิกข้อความบนเกียรติบัตร แล้วลากเมาส์คลุมเฉพาะคำก่อนเลือกสีจากแถบลอย
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;" class="certificate-color-grid">
+                                <label class="certificate-color-item">หัวข้อ <input type="color" id="textColor_title" value="#1E293B" oninput="setWholeTextColor('title', this.value)"></label>
+                                <label class="certificate-color-item">คำเกริ่น <input type="color" id="textColor_subtitle" value="#64748B" oninput="setWholeTextColor('subtitle', this.value)"></label>
+                                <label class="certificate-color-item">ชื่อผู้รับ <input type="color" id="textColor_recipient" value="#4F46E5" oninput="setWholeTextColor('recipient', this.value)"></label>
+                                <label class="certificate-color-item">เนื้อหา <input type="color" id="textColor_body" value="#334155" oninput="setWholeTextColor('body', this.value)"></label>
+                                <label class="certificate-color-item">วันที่ <input type="color" id="textColor_date" value="#64748B" oninput="setWholeTextColor('date', this.value)"></label>
+                                <label class="certificate-color-item">ชื่อผู้ลงนาม <input type="color" id="textColor_issuerName" value="#1E293B" oninput="setWholeTextColor('issuerName', this.value)"></label>
+                                <label class="certificate-color-item">ตำแหน่งผู้ลงนาม <input type="color" id="textColor_issuerTitle" value="#64748B" oninput="setWholeTextColor('issuerTitle', this.value)"></label>
+                            </div>
+                        </div>
+
                         <!-- Signatures & Authority -->
                         <div class="settings-section">
-                            <div class="section-heading"><i class="fas fa-signature"></i> 4. ผู้ลงนาม / รูปลายเซ็น (แยกขยายอิสระ)</div>
+                            <div class="section-heading"><i class="fas fa-signature"></i> 5. ผู้ลงนาม / รูปลายเซ็น (แยกขยายอิสระ)</div>
                             <div class="form-group" style="margin-bottom: 10px; background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
                                 <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">ชื่อและตำแหน่งผู้มีอำนาจลงนาม</label>
                                 <textarea class="form-control" id="inputIssuerName" rows="1" style="margin-bottom: 6px;" oninput="updateText('issuerName', this.value)">ผู้ช่วยศาสตราจารย์ ดร.สมชาย ใจดี</textarea>
@@ -797,7 +859,7 @@
                             <div style="font-size: 0.88rem; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                                 <span><i class="fas fa-mouse text-primary"></i> <strong>ดับเบิลคลิก:</strong> พิมพ์แก้ไขข้อความ (ไม่เลื่อน)</span>
                                 <span>|</span>
-                                <span><i class="fas fa-expand-arrows-alt text-primary"></i> <strong>คลิกที่ข้อความ:</strong> จะมีปุ่ม ย่อ/ขยาย ขนาด</span>
+                                <span><i class="fas fa-expand-arrows-alt text-primary"></i> <strong>คลิกที่ข้อความ:</strong> ย่อ/ขยาย และเปลี่ยนสี</span>
                                 <span>|</span>
                                 <span><i class="fas fa-arrows-alt text-primary"></i> <strong>คลิกลาก:</strong> ย้ายตำแหน่ง</span>
                             </div>
@@ -816,6 +878,10 @@
                                 <span class="float-size-label" id="floatSizeLabel">28px</span>
                                 <button type="button" class="float-btn" onclick="adjustSelectedSize(2)" title="ขยายขนาด"><i class="fas fa-plus"></i> ขยาย</button>
                                 <button type="button" class="float-btn float-btn-edit" id="floatEditBtn" onclick="editSelectedElement()" title="พิมพ์แก้ไขข้อความ"><i class="fas fa-edit"></i> พิมพ์แก้ไข</button>
+                                <label class="float-color-control" id="floatingColorControl" title="เลือกสีทั้งข้อความ หรือสีเฉพาะข้อความที่ลากคลุมไว้">
+                                    <i class="fas fa-palette"></i> สี
+                                    <input type="color" id="floatingTextColor" value="#1E293B" onchange="applySelectedTextColor(this.value)">
+                                </label>
                             </div>
 
                             <!-- Logo Element -->
@@ -924,6 +990,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="js/admin.js?v=2.4"></script>
-    <script src="js/certificates.js?v=4.0"></script>
+    <script src="js/certificates.js?v=4.1"></script>
 </body>
 </html>
