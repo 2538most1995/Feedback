@@ -10,4 +10,4 @@ api/config.local.php
 config.local.php
 *.local.php
 api/*.local.php
-
+storage/certificate_exports/

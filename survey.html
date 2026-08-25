@@ -373,7 +373,7 @@
                             <div style="font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
                                 <i class="fab fa-line" style="font-size: 1.2rem; color: #06C755;"></i> ผู้ใช้งานผ่าน LINE:
                             </div>
-                            <div>แอปพลิเคชัน LINE ปิดกั้นการดาวน์โหลดไฟล์ PDF โดยตรง แนะนำให้กดปุ่ม <strong>"บันทึกเป็นรูปภาพ (PNG)"</strong> เพื่อแตะค้างเซฟลงอัลบั้ม หรือกดปุ่ม <strong>"เปิดใน Safari / Chrome"</strong></div>
+                            <div>แนะนำให้กด <strong>“บันทึกเป็นรูปภาพ”</strong> แล้วเลือก <strong>“บันทึกลงอัลบั้ม / แชร์”</strong> ระบบจะเปิดเมนูของมือถือ หรือเปิดรูปใน Safari / Chrome ให้โดยอัตโนมัติเมื่อ LINE ไม่รองรับ</div>
                         </div>
 
                         <div style="display: flex; flex-direction: column; gap: 10px;">
@@ -408,8 +408,8 @@
                 <i class="fas fa-award text-primary" style="margin-right: 6px;"></i> เกียรติบัตรของคุณ
             </h3>
             
-            <div id="certModalLineTip" style="background: #FEF3C7; border: 1px solid #FCD34D; border-radius: 8px; padding: 8px 12px; font-size: 0.82rem; color: #92400E; margin-bottom: 12px; text-align: center;">
-                <i class="fab fa-line" style="color: #06C755;"></i> <strong>วิธีบันทึกใน LINE:</strong> แตะค้างที่รูปภาพด้านล่าง แล้วเลือก <strong>"บันทึกรูปภาพ" (Save Image)</strong>
+            <div id="certModalLineTip" style="background: #EFF6FF; border: 1px solid #93C5FD; border-radius: 8px; padding: 9px 12px; font-size: 0.82rem; color: #1E3A8A; margin-bottom: 12px; text-align: center; line-height: 1.5;">
+                <i class="fas fa-mobile-alt"></i> กด <strong>“บันทึกลงอัลบั้ม / แชร์”</strong> แล้วเลือก “บันทึกรูปภาพ” หรือแอป Photos / Gallery ของมือถือ
             </div>
 
             <div style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
@@ -417,14 +417,20 @@
             </div>
 
             <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
-                <a id="certModalDownloadPngBtn" href="#" download="Certificate.png" class="btn" style="background: #0284C7; color: white; border-radius: 999px; padding: 10px 20px; font-size: 0.9rem; font-weight: 600; text-decoration: none;">
-                    <i class="fas fa-download"></i> บันทึกรูปภาพ (PNG)
+                <button type="button" id="certModalSaveImageBtn" class="btn" style="background: #0284C7; color: white; border: none; border-radius: 999px; padding: 10px 20px; font-size: 0.9rem; font-weight: 700;">
+                    <i class="fas fa-share-alt"></i> บันทึกลงอัลบั้ม / แชร์
+                </button>
+                <a id="certModalDownloadPngBtn" href="#" download="Certificate.png" class="btn" style="background: #E0F2FE; color: #0369A1; border: 1px solid #7DD3FC; border-radius: 999px; padding: 10px 20px; font-size: 0.9rem; font-weight: 600; text-decoration: none;">
+                    <i class="fas fa-download"></i> ดาวน์โหลด PNG
                 </a>
+                <button type="button" id="certModalOpenImageBtn" class="btn btn-outline" style="border-radius: 999px; padding: 10px 20px; font-size: 0.9rem; font-weight: 600;">
+                    <i class="fas fa-expand"></i> เปิดรูปเต็มจอ
+                </button>
                 <button type="button" id="certModalDownloadPdfBtn" class="btn btn-primary" style="background: #16A34A; border-color: #16A34A; border-radius: 999px; padding: 10px 20px; font-size: 0.9rem; font-weight: 600;">
                     <i class="fas fa-file-pdf"></i> ดาวน์โหลด PDF
                 </button>
                 <a id="certModalOpenExtBtn" href="#" style="display:none; background: #0F172A; color: white; border-radius: 999px; padding: 10px 20px; font-size: 0.9rem; font-weight: 600; text-decoration: none; align-items: center; gap: 6px;">
-                    <i class="fas fa-external-link-alt"></i> เปิดใน Safari / Chrome
+                    <i class="fas fa-external-link-alt"></i> เปิดรูปใน Safari / Chrome
                 </a>
                 <button type="button" onclick="closeCertModal()" class="btn btn-outline" style="border-radius: 999px; padding: 10px 20px; font-size: 0.9rem;">
                     ปิดหน้าต่าง
@@ -436,6 +442,6 @@
     <!-- Scripts: html2canvas & jsPDF for 100% WYSIWYG Certificate Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="js/survey.js?v=3.7"></script>
+    <script src="js/survey.js?v=3.8"></script>
 </body>
 </html>

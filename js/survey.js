@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const adminReturnBtn = document.getElementById('adminReturnBtn');
 
     let surveyData = null;
+    let currentCertificateAsset = null;
 
     if (isPreview && previewBanner) {
         previewBanner.classList.remove('hidden');
@@ -344,6 +345,113 @@ document.addEventListener('DOMContentLoaded', () => {
         return /Line\//i.test(ua) || /LineApp/i.test(ua);
     }
 
+    function isMobileDevice() {
+        return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '') || navigator.maxTouchPoints > 1;
+    }
+
+    function addLineExternalBrowserParam(url) {
+        try {
+            const externalUrl = new URL(url, window.location.href);
+            externalUrl.searchParams.set('openExternalBrowser', '1');
+            return externalUrl.toString();
+        } catch (e) {
+            return url + (String(url).includes('?') ? '&' : '?') + 'openExternalBrowser=1';
+        }
+    }
+
+    function dataUrlToBlob(dataUrl) {
+        const parts = String(dataUrl).split(',');
+        const mimeMatch = parts[0].match(/data:([^;]+)/);
+        const binary = atob(parts[1] || '');
+        const bytes = new Uint8Array(binary.length);
+        for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+        return new Blob([bytes], { type: mimeMatch ? mimeMatch[1] : 'image/png' });
+    }
+
+    async function publishTemporaryCertificateImage(imageBlob, filename) {
+        try {
+            const response = await fetch('api/certificate_image.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'image/png',
+                    'X-Certificate-Filename': encodeURIComponent(filename)
+                },
+                credentials: 'include',
+                body: imageBlob
+            });
+            const json = await response.json();
+            if (!response.ok || !json.success || !json.data?.url) return '';
+            return new URL(json.data.url, window.location.href).toString();
+        } catch (error) {
+            console.warn('Temporary certificate image unavailable:', error);
+            return '';
+        }
+    }
+
+    function triggerCertificateDownload(asset) {
+        const link = document.createElement('a');
+        link.download = asset.filename;
+        link.href = asset.objectUrl || asset.dataUrl;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function canShareCertificateFile(asset) {
+        if (!asset?.file || typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function') return false;
+        try {
+            return navigator.canShare({ files: [asset.file] });
+        } catch (error) {
+            return false;
+        }
+    }
+
+    async function saveCertificateImageToDevice(asset) {
+        if (!asset) return;
+        const saveButton = document.getElementById('certModalSaveImageBtn');
+        const originalHtml = saveButton ? saveButton.innerHTML : '';
+        if (saveButton) {
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังเปิดเมนูบันทึก...';
+        }
+
+        try {
+            if (canShareCertificateFile(asset)) {
+                await navigator.share({
+                    files: [asset.file],
+                    title: 'เกียรติบัตร',
+                    text: 'บันทึกเกียรติบัตรลงในอัลบั้มรูปภาพ'
+                });
+                return;
+            }
+
+            if (isLineBrowser() && asset.publicUrl) {
+                window.location.href = addLineExternalBrowserParam(asset.publicUrl);
+                return;
+            }
+
+            triggerCertificateDownload(asset);
+            if (/iPhone|iPad|iPod/i.test(navigator.userAgent || '')) {
+                const target = asset.publicUrl || asset.objectUrl || asset.dataUrl;
+                window.open(target, '_blank', 'noopener');
+            }
+        } catch (error) {
+            if (error && error.name === 'AbortError') return;
+            console.warn('Native certificate save failed:', error);
+            if (isLineBrowser() && asset.publicUrl) {
+                window.location.href = addLineExternalBrowserParam(asset.publicUrl);
+            } else {
+                triggerCertificateDownload(asset);
+            }
+        } finally {
+            if (saveButton) {
+                saveButton.disabled = false;
+                saveButton.innerHTML = originalHtml;
+            }
+        }
+    }
+
     async function checkAndSetupCertificate(surveyId, respondentName) {
         try {
             const res = await fetch(`api/certificates.php?survey_id=${surveyId}&_t=${Date.now()}`);
@@ -659,33 +767,78 @@ document.addEventListener('DOMContentLoaded', () => {
             const pngDataUrl = canvas.toDataURL('image/png', 1.0);
             const isLine = isLineBrowser();
             const safeFileName = `Certificate_${name.replace(/[^a-zA-Z0-9ก-๙]/g, '_')}`;
+            const pngFilename = `${safeFileName}.png`;
+            const pngBlob = dataUrlToBlob(pngDataUrl);
+            if (currentCertificateAsset?.objectUrl) {
+                URL.revokeObjectURL(currentCertificateAsset.objectUrl);
+            }
+            const objectUrl = URL.createObjectURL(pngBlob);
+            let pngFile = null;
+            try {
+                pngFile = new File([pngBlob], pngFilename, { type: 'image/png', lastModified: Date.now() });
+            } catch (error) {}
+
+            const publicUrl = (isLine || isMobileDevice())
+                ? await publishTemporaryCertificateImage(pngBlob, pngFilename)
+                : '';
+            currentCertificateAsset = {
+                dataUrl: pngDataUrl,
+                blob: pngBlob,
+                file: pngFile,
+                filename: pngFilename,
+                objectUrl,
+                publicUrl
+            };
 
             // Set up Modal preview
             const modal = document.getElementById('certModal');
             const modalImg = document.getElementById('certModalImg');
+            const modalSaveBtn = document.getElementById('certModalSaveImageBtn');
             const modalPngBtn = document.getElementById('certModalDownloadPngBtn');
+            const modalOpenImageBtn = document.getElementById('certModalOpenImageBtn');
             const modalPdfBtn = document.getElementById('certModalDownloadPdfBtn');
             const modalLineTip = document.getElementById('certModalLineTip');
             const modalExtBtn = document.getElementById('certModalOpenExtBtn');
 
-            if (modalImg) modalImg.src = pngDataUrl;
+            if (modalImg) modalImg.src = objectUrl;
+            if (modalSaveBtn) {
+                modalSaveBtn.onclick = () => saveCertificateImageToDevice(currentCertificateAsset);
+                if (canShareCertificateFile(currentCertificateAsset)) {
+                    modalSaveBtn.innerHTML = '<i class="fas fa-share-alt"></i> บันทึกลงอัลบั้ม / แชร์';
+                } else if (isLine && publicUrl) {
+                    modalSaveBtn.innerHTML = '<i class="fas fa-external-link-alt"></i> เปิด Safari / Chrome เพื่อบันทึก';
+                } else {
+                    modalSaveBtn.innerHTML = '<i class="fas fa-download"></i> ดาวน์โหลดรูปภาพ';
+                }
+            }
             if (modalPngBtn) {
-                modalPngBtn.href = pngDataUrl;
-                modalPngBtn.download = `${safeFileName}.png`;
+                modalPngBtn.href = objectUrl;
+                modalPngBtn.download = pngFilename;
+            }
+            if (modalOpenImageBtn) {
+                modalOpenImageBtn.onclick = () => {
+                    const target = publicUrl || objectUrl;
+                    if (isLine && publicUrl) {
+                        window.location.href = addLineExternalBrowserParam(publicUrl);
+                    } else {
+                        window.open(target, '_blank', 'noopener');
+                    }
+                };
             }
             if (modalLineTip) {
-                modalLineTip.style.display = isLine ? 'block' : 'none';
+                modalLineTip.style.display = (isLine || isMobileDevice()) ? 'block' : 'none';
+                if (isLine) {
+                    modalLineTip.innerHTML = '<i class="fab fa-line" style="color:#06C755;"></i> <strong>LINE:</strong> กดปุ่มบันทึกด้านล่าง หาก LINE ไม่รองรับ ระบบจะเปิดรูปใน Safari / Chrome เพื่อให้แตะค้างแล้วเลือก “บันทึกรูปภาพ”';
+                } else if (/iPhone|iPad|iPod/i.test(navigator.userAgent || '')) {
+                    modalLineTip.innerHTML = '<i class="fab fa-apple"></i> กด <strong>“บันทึกลงอัลบั้ม / แชร์”</strong> แล้วเลือก <strong>“บันทึกรูปภาพ”</strong> เพื่อเก็บในแอป Photos';
+                } else {
+                    modalLineTip.innerHTML = '<i class="fab fa-android"></i> กด <strong>“บันทึกลงอัลบั้ม / แชร์”</strong> แล้วเลือก Photos / Gallery หรือกดดาวน์โหลด PNG';
+                }
             }
             if (modalExtBtn) {
-                if (isLine) {
+                if (isLine && publicUrl) {
                     modalExtBtn.style.display = 'inline-flex';
-                    try {
-                        const currentUrl = new URL(window.location.href);
-                        currentUrl.searchParams.set('openExternalBrowser', '1');
-                        modalExtBtn.href = currentUrl.toString();
-                    } catch (e) {
-                        modalExtBtn.href = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'openExternalBrowser=1';
-                    }
+                    modalExtBtn.href = addLineExternalBrowserParam(publicUrl);
                 } else {
                     modalExtBtn.style.display = 'none';
                 }
@@ -715,23 +868,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (targetMode === 'image') {
                 if (modal) modal.style.display = 'flex';
-                if (!isLine) {
-                    const link = document.createElement('a');
-                    link.download = `${safeFileName}.png`;
-                    link.href = pngDataUrl;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+                if (!isLine && !isMobileDevice()) {
+                    triggerCertificateDownload(currentCertificateAsset);
                 }
             } else {
                 // targetMode === 'pdf'
                 if (isLine) {
-                    // In LINE In-App Browser, Blob/Data PDF downloads are blocked by LINE sandbox.
-                    // Show modal with clear instructions and PNG/PDF options.
                     if (modal) modal.style.display = 'flex';
-                    try {
-                        downloadPdfAction();
-                    } catch (e) {}
                 } else {
                     downloadPdfAction();
                 }
