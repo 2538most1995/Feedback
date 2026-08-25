@@ -37,6 +37,9 @@
             }
         }
         @media (max-width: 768px) {
+            .sticky-action-bar.is-visible {
+                display: flex;
+            }
             .stats-filter-card {
                 padding: 14px;
                 flex-direction: column;
@@ -123,7 +126,10 @@
                             <div class="skeleton" style="height: 44px; width: 100%;"></div>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 10px; align-items: flex-end;">
+                    <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-outline" id="exportSpssBtn" onclick="exportToSpss()" disabled style="border-color:#7C3AED; color:#6D28D9;">
+                            <i class="fas fa-database"></i> <span>ส่งออก SPSS (.sav)</span>
+                        </button>
                         <button type="button" class="btn btn-primary" id="exportExcelBtn" onclick="exportToExcel()" disabled>
                             <i class="fas fa-file-excel"></i> <span>ส่งออก Excel</span>
                         </button>
@@ -251,9 +257,12 @@
     </div>
 
     <!-- Mobile Sticky Action Bar -->
-    <div class="sticky-action-bar" id="statsMobileStickyBar" style="display:none;">
+    <div class="sticky-action-bar" id="statsMobileStickyBar">
+        <button type="button" class="btn btn-outline" onclick="exportToSpss()" id="mobileSpssExportBtn" style="border-color:#7C3AED; color:#6D28D9;">
+            <i class="fas fa-database"></i> <span>SPSS (.sav)</span>
+        </button>
         <button type="button" class="btn btn-primary" onclick="exportToExcel()" id="mobileExportBtn">
-            <i class="fas fa-file-excel"></i> <span>ส่งออกรายงาน Excel</span>
+            <i class="fas fa-file-excel"></i> <span>Excel</span>
         </button>
     </div>
 
@@ -262,6 +271,6 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/admin.js?v=2.3"></script>
-    <script src="js/stats.js?v=2.3"></script>
+    <script src="js/stats.js?v=2.4"></script>
 </body>
 </html>

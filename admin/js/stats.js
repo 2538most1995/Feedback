@@ -77,6 +77,7 @@ function hideStatsAndShowEmpty() {
     const emptyState = document.getElementById('emptyStatsState');
     const skeleton = document.getElementById('statsLoadingSkeleton');
     const exportBtn = document.getElementById('exportExcelBtn');
+    const exportSpssBtn = document.getElementById('exportSpssBtn');
     const mobileStickyBar = document.getElementById('statsMobileStickyBar');
 
     if (statsArea) statsArea.style.display = 'none';
@@ -86,7 +87,8 @@ function hideStatsAndShowEmpty() {
         renderInitialEmptyState();
     }
     if (exportBtn) exportBtn.disabled = true;
-    if (mobileStickyBar) mobileStickyBar.style.display = 'none';
+    if (exportSpssBtn) exportSpssBtn.disabled = true;
+    if (mobileStickyBar) mobileStickyBar.classList.remove('is-visible');
 }
 
 async function loadSurveyStats(surveyId) {
@@ -94,6 +96,7 @@ async function loadSurveyStats(surveyId) {
     const emptyState = document.getElementById('emptyStatsState');
     const skeleton = document.getElementById('statsLoadingSkeleton');
     const exportBtn = document.getElementById('exportExcelBtn');
+    const exportSpssBtn = document.getElementById('exportSpssBtn');
     const mobileStickyBar = document.getElementById('statsMobileStickyBar');
 
     if (!statsArea) return;
@@ -103,7 +106,8 @@ async function loadSurveyStats(surveyId) {
     if (emptyState) emptyState.style.display = 'none';
     if (skeleton) skeleton.style.display = 'block';
     if (exportBtn) exportBtn.disabled = true;
-    if (mobileStickyBar) mobileStickyBar.style.display = 'none';
+    if (exportSpssBtn) exportSpssBtn.disabled = true;
+    if (mobileStickyBar) mobileStickyBar.classList.remove('is-visible');
 
     try {
         const res = await api(`../api/stats.php?type=survey&id=${surveyId}`);
@@ -146,7 +150,8 @@ async function loadSurveyStats(surveyId) {
         // Show stats content
         statsArea.style.display = 'block';
         if (exportBtn) exportBtn.disabled = false;
-        if (mobileStickyBar) mobileStickyBar.style.display = 'flex';
+        if (exportSpssBtn) exportSpssBtn.disabled = false;
+        if (mobileStickyBar) mobileStickyBar.classList.add('is-visible');
 
         // Update overview cards
         const totalEl = document.getElementById('statsTotalResponses');
@@ -360,6 +365,71 @@ function renderQuestionTable(questions) {
             <td style="text-align:center;">${q.count || 0}</td>
         </tr>
     `).join('');
+}
+
+async function exportToSpss() {
+    if (!currentSurveyId) {
+        showToast('กรุณาเลือกแบบประเมินก่อน', 'warning');
+        return;
+    }
+
+    const buttons = [
+        document.getElementById('exportSpssBtn'),
+        document.getElementById('mobileSpssExportBtn')
+    ].filter(Boolean);
+    const originalContent = buttons.map(button => button.innerHTML);
+
+    try {
+        buttons.forEach(button => {
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>กำลังสร้าง...</span>';
+        });
+        showToast('กำลังสร้างไฟล์ SPSS พร้อมป้ายกำกับตัวแปร...', 'info');
+
+        const response = await fetch(`../api/spss_export.php?id=${encodeURIComponent(currentSurveyId)}`, {
+            credentials: 'same-origin'
+        });
+        if (!response.ok) {
+            let message = 'ไม่สามารถสร้างไฟล์ SPSS ได้';
+            try {
+                const errorData = await response.json();
+                message = errorData.message || message;
+            } catch (_) {
+                // ใช้ข้อความมาตรฐานเมื่อเซิร์ฟเวอร์ไม่ได้ตอบกลับเป็น JSON
+            }
+            throw new Error(message);
+        }
+
+        const blob = await response.blob();
+        if (blob.size === 0) {
+            throw new Error('ไฟล์ SPSS ที่สร้างไม่มีข้อมูล');
+        }
+
+        let fileName = `SPSS_Survey_${currentSurveyId}_${new Date().toISOString().slice(0, 10)}.sav`;
+        const disposition = response.headers.get('Content-Disposition') || '';
+        const utf8Name = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+        if (utf8Name) {
+            fileName = decodeURIComponent(utf8Name[1]);
+        }
+
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        showToast('ส่งออกไฟล์ SPSS (.sav) สำเร็จ พร้อมนำไปวิเคราะห์ต่อ', 'success');
+    } catch (error) {
+        console.error('SPSS export error:', error);
+        showToast(error.message || 'เกิดข้อผิดพลาดในการส่งออก SPSS', 'error');
+    } finally {
+        buttons.forEach((button, index) => {
+            button.disabled = false;
+            button.innerHTML = originalContent[index];
+        });
+    }
 }
 
 async function exportToExcel() {

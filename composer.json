@@ -1,0 +1,9 @@
+{
+    "name": "mostwuttiphon/feedback",
+    "description": "ระบบประเมินความพึงพอใจและรายงานผล",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "openstatspec/spss-sav": "^2.3"
+    }
+}
