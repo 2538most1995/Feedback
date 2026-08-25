@@ -489,6 +489,11 @@
             min-height: 30px;
             min-width: 80px;
         }
+        #signatureImgBox {
+            align-items: center;
+            justify-content: center;
+            line-height: 0;
+        }
         .el-signature img {
             max-height: 100%;
             max-width: 100%;
@@ -659,7 +664,7 @@
                         </button>
                     </div>
                     <div style="font-size: 0.75rem; color: var(--text-light); margin-top: 8px;">
-                        <i class="fas fa-info-circle"></i> การใช้เทมเพลตจะนำค่ามาใส่ในหน้าจอนี้ก่อน กรุณากด “บันทึกการตั้งค่า” เพื่อผูกกับแบบประเมินที่เลือก
+                        <i class="fas fa-info-circle"></i> การใช้เทมเพลตจะนำค่ามาใส่ในหน้าจอนี้ก่อน โดยคงข้อความบรรยายการเข้าร่วม (Body) ของแบบประเมินปัจจุบันไว้ กรุณากด “บันทึกการตั้งค่า” เพื่อยืนยัน
                     </div>
                 </div>
 
@@ -708,7 +713,7 @@
                             </div>
                             <div style="display: flex; gap: 10px; align-items: center;">
                                 <label style="font-size: 0.85rem; color: var(--text-light);">ขนาดโลโก้:</label>
-                                <input type="range" id="logoSizeRange" min="40" max="140" value="70" style="flex:1;" oninput="updateLogoSize(this.value)">
+                                <input type="range" id="logoSizeRange" min="30" max="320" value="70" style="flex:1;" oninput="updateLogoSize(this.value)">
                                 <span id="logoSizeVal" style="font-size: 0.8rem; font-weight: 600;">70px</span>
                             </div>
                         </div>
@@ -839,7 +844,7 @@
                                     <span style="font-size: 0.78rem; color: var(--text-light);">ขนาดลายเซ็น:</span>
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <button type="button" class="btn btn-sm btn-outline" style="padding: 1px 7px; font-size: 0.75rem;" onclick="stepFontSize('signature', -5)">-</button>
-                                        <input type="range" id="signatureSizeRange" min="20" max="140" value="50" style="width: 80px;" oninput="updateSignatureSize(this.value)">
+                                        <input type="range" id="signatureSizeRange" min="20" max="260" value="50" style="width: 120px;" oninput="updateSignatureSize(this.value)">
                                         <span id="signatureSizeVal" style="font-size: 0.8rem; font-weight: 700; min-width: 36px; text-align: right;">50px</span>
                                         <button type="button" class="btn btn-sm btn-outline" style="padding: 1px 7px; font-size: 0.75rem;" onclick="stepFontSize('signature', 5)">+</button>
                                     </div>
@@ -943,7 +948,7 @@
 
                             <!-- Signature Element (Separated) -->
                             <div class="cert-element el-signature" id="el_signature" data-key="signature" style="left: 50%; top: 79%;">
-                                <div id="signatureImgBox" style="display:none; height: 50px;">
+                                <div id="signatureImgBox" style="display:none; height: 50px; align-items:center; justify-content:center; line-height:0;">
                                     <img src="" id="signatureImg" style="height: 100%; object-fit: contain;" alt="Signature">
                                 </div>
                                 <div id="signatureFallbackBox" style="display:flex; align-items:center; justify-content:center; border: 1.5px dashed #CBD5E1; border-radius: 6px; padding: 4px 12px; color: #94A3B8; font-size: 13px; min-height: 38px;">
@@ -990,6 +995,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="js/admin.js?v=2.4"></script>
-    <script src="js/certificates.js?v=4.1"></script>
+    <script src="js/certificates.js?v=4.2"></script>
 </body>
 </html>

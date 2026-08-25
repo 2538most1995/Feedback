@@ -6,6 +6,7 @@ let allSurveys = [];
 let currentSelectedKey = null;
 let currentEditingStyleType = null;
 let lastTextSelectionRange = null;
+let suppressCanvasClickUntil = 0;
 
 const textStyleDefinitions = {
     title: { elementId: 'dispTitle', configKey: 'title', colorKey: 'color', rangesKey: 'color_ranges', defaultColor: '#1E293B' },
@@ -15,6 +16,11 @@ const textStyleDefinitions = {
     date: { elementId: 'dispDate', configKey: 'date', colorKey: 'color', rangesKey: 'color_ranges', defaultColor: '#64748B' },
     issuerName: { elementId: 'dispIssuerName', configKey: 'issuer', colorKey: 'name_color', rangesKey: 'name_color_ranges', defaultColor: '#1E293B' },
     issuerTitle: { elementId: 'dispIssuerTitle', configKey: 'issuer', colorKey: 'title_color', rangesKey: 'title_color_ranges', defaultColor: '#64748B' }
+};
+
+const mediaSizeLimits = {
+    logo: { min: 30, max: 320, stepMultiplier: 3 },
+    signature: { min: 20, max: 260, stepMultiplier: 3 }
 };
 
 let certConfig = {
@@ -218,13 +224,27 @@ async function applySelectedCertificateTemplate() {
             ? template.elements_config
             : {};
         const currentEnabled = certConfig.is_enabled;
+        const currentBodyText = certConfig.body_text ?? '';
+        const currentBodyRanges = Array.isArray(certConfig.elements_config?.body?.color_ranges)
+            ? certConfig.elements_config.body.color_ranges.map(range => ({ ...range }))
+            : [];
+
+        const mergedTemplatePositions = Object.fromEntries(
+            Object.keys(defaultPositions).map(key => [
+                key,
+                { ...defaultPositions[key], ...(templatePositions[key] || {}) }
+            ])
+        );
+        // Partial text colors are tied to character offsets. Keep the current
+        // survey body's ranges because its content intentionally does not change.
+        mergedTemplatePositions.body.color_ranges = currentBodyRanges;
 
         certConfig = {
             ...certConfig,
             title: template.title ?? 'เกียรติบัตร',
             subtitle: template.subtitle ?? 'มอบให้ไว้เพื่อแสดงว่า',
             recipient_name: template.recipient_name ?? '{name}',
-            body_text: template.body_text ?? '',
+            body_text: currentBodyText,
             issued_date: template.issued_date ?? '{date}',
             issuer_name: template.issuer_name ?? '',
             issuer_title: template.issuer_title ?? '',
@@ -232,19 +252,14 @@ async function applySelectedCertificateTemplate() {
             signature_url: template.signature_url ?? '',
             bg_image_url: template.bg_image_url ?? '',
             bg_preset: template.bg_preset || 'gold-luxury',
-            elements_config: Object.fromEntries(
-                Object.keys(defaultPositions).map(key => [
-                    key,
-                    { ...defaultPositions[key], ...(templatePositions[key] || {}) }
-                ])
-            ),
+            elements_config: mergedTemplatePositions,
             is_enabled: currentEnabled
         };
 
         selectElement(null);
         stopAllInlineEditing();
         applyConfigToUI();
-        showToast('นำเทมเพลตมาใช้แล้ว กรุณากดบันทึกการตั้งค่าเพื่อยืนยัน', 'success');
+        showToast('นำเทมเพลตมาใช้แล้ว (คงข้อความ Body ของแบบประเมินนี้ไว้) กรุณากดบันทึกเพื่อยืนยัน', 'success');
     } catch (err) {
         console.error('Apply certificate template error:', err);
         showToast(err.message || 'ไม่สามารถนำเทมเพลตมาใช้ได้', 'error');
@@ -408,7 +423,7 @@ function applyConfigToUI() {
     const sigFallback = document.getElementById('signatureFallbackBox');
     if (certConfig.signature_url) {
         if (sigImg) sigImg.src = certConfig.signature_url;
-        if (sigBox) sigBox.style.display = 'block';
+        if (sigBox) sigBox.style.display = 'flex';
         if (sigFallback) sigFallback.style.display = 'none';
     } else {
         if (sigBox) sigBox.style.display = 'none';
@@ -453,6 +468,8 @@ function applyElementPositions(positions) {
                         wrap.style.width = `${pos.size}px`;
                         wrap.style.height = `${pos.size}px`;
                     }
+                    const fallbackIcon = document.getElementById('logoFallbackIcon');
+                    if (fallbackIcon) fallbackIcon.style.fontSize = `${Math.round(pos.size * 0.72)}px`;
                     const slider = document.getElementById('logoSizeRange');
                     if (slider) slider.value = pos.size;
                     const valEl = document.getElementById('logoSizeVal');
@@ -460,6 +477,7 @@ function applyElementPositions(positions) {
                 } else if (key === 'signature') {
                     const box = document.getElementById('signatureImgBox');
                     if (box) box.style.height = `${pos.size}px`;
+                    updateSignatureFallbackSize(pos.size);
                     const slider = document.getElementById('signatureSizeRange');
                     if (slider) slider.value = pos.size;
                     const valEl = document.getElementById('signatureSizeVal');
@@ -576,7 +594,8 @@ async function handleLogoUpload(e) {
 }
 
 function updateLogoSize(val) {
-    const size = parseInt(val);
+    const limits = mediaSizeLimits.logo;
+    const size = Math.max(limits.min, Math.min(limits.max, parseInt(val) || 70));
     const valEl = document.getElementById('logoSizeVal');
     if (valEl) valEl.textContent = `${size}px`;
     const slider = document.getElementById('logoSizeRange');
@@ -586,6 +605,8 @@ function updateLogoSize(val) {
         wrap.style.width = `${size}px`;
         wrap.style.height = `${size}px`;
     }
+    const fallbackIcon = document.getElementById('logoFallbackIcon');
+    if (fallbackIcon) fallbackIcon.style.fontSize = `${Math.round(size * 0.72)}px`;
     if (!certConfig.elements_config) certConfig.elements_config = {};
     if (!certConfig.elements_config.logo) certConfig.elements_config.logo = {};
     certConfig.elements_config.logo.size = size;
@@ -609,7 +630,7 @@ async function handleSignatureUpload(e) {
         const sigBox = document.getElementById('signatureImgBox');
         const sigFallback = document.getElementById('signatureFallbackBox');
         if (sigImg) sigImg.src = certConfig.signature_url;
-        if (sigBox) sigBox.style.display = 'block';
+        if (sigBox) sigBox.style.display = 'flex';
         if (sigFallback) sigFallback.style.display = 'none';
         showToast('อัปโหลดรูปลายเซ็นสำเร็จ (พร้อมบันทึก)', 'success');
     } catch (err) {
@@ -619,13 +640,15 @@ async function handleSignatureUpload(e) {
 }
 
 function updateSignatureSize(val) {
-    const size = parseInt(val);
+    const limits = mediaSizeLimits.signature;
+    const size = Math.max(limits.min, Math.min(limits.max, parseInt(val) || 50));
     const valEl = document.getElementById('signatureSizeVal');
     if (valEl) valEl.textContent = `${size}px`;
     const slider = document.getElementById('signatureSizeRange');
     if (slider) slider.value = size;
     const box = document.getElementById('signatureImgBox');
     if (box) box.style.height = `${size}px`;
+    updateSignatureFallbackSize(size);
     if (!certConfig.elements_config) certConfig.elements_config = {};
     if (!certConfig.elements_config.signature) certConfig.elements_config.signature = { x: 50, y: 79 };
     certConfig.elements_config.signature.size = size;
@@ -636,6 +659,14 @@ function updateSignatureSize(val) {
         const el = document.getElementById('el_signature');
         if (el) updateFloatingToolbarPosition(el);
     }
+}
+
+function updateSignatureFallbackSize(size) {
+    const fallback = document.getElementById('signatureFallbackBox');
+    if (!fallback) return;
+    const safeSize = Math.max(mediaSizeLimits.signature.min, Math.min(mediaSizeLimits.signature.max, parseInt(size) || 50));
+    fallback.style.minHeight = `${Math.max(38, safeSize)}px`;
+    fallback.style.minWidth = `${Math.max(160, Math.round(safeSize * 2.4))}px`;
 }
 
 // Update font size from sidebar slider or +/- buttons
@@ -669,13 +700,15 @@ function updateFontSize(key, val) {
 
 function stepFontSize(key, delta) {
     if (key === 'signature') {
+        const limits = mediaSizeLimits.signature;
         const cur = (certConfig.elements_config.signature && certConfig.elements_config.signature.size) || 50;
-        updateSignatureSize(Math.max(20, Math.min(140, cur + delta)));
+        updateSignatureSize(Math.max(limits.min, Math.min(limits.max, cur + delta)));
         return;
     }
     if (key === 'logo') {
+        const limits = mediaSizeLimits.logo;
         const cur = (certConfig.elements_config.logo && certConfig.elements_config.logo.size) || 70;
-        updateLogoSize(Math.max(30, Math.min(180, cur + delta)));
+        updateLogoSize(Math.max(limits.min, Math.min(limits.max, cur + delta)));
         return;
     }
 
@@ -690,9 +723,9 @@ function stepFontSize(key, delta) {
 function adjustSelectedSize(delta) {
     if (!currentSelectedKey) return;
     if (currentSelectedKey === 'logo') {
-        stepFontSize('logo', delta * 3);
+        stepFontSize('logo', delta * mediaSizeLimits.logo.stepMultiplier);
     } else if (currentSelectedKey === 'signature') {
-        stepFontSize('signature', delta * 3);
+        stepFontSize('signature', delta * mediaSizeLimits.signature.stepMultiplier);
     } else {
         stepFontSize(currentSelectedKey, delta);
     }
@@ -733,6 +766,8 @@ function updateFloatingToolbarPosition(el) {
 function selectElement(el) {
     if (!el) {
         currentSelectedKey = null;
+        currentEditingStyleType = null;
+        lastTextSelectionRange = null;
         document.querySelectorAll('.cert-element').forEach(item => item.classList.remove('selected'));
         const bar = document.getElementById('elementFloatingBar');
         if (bar) bar.style.display = 'none';
@@ -766,13 +801,16 @@ function selectElement(el) {
         floatingColorControl.style.display = (currentSelectedKey === 'logo' || currentSelectedKey === 'signature') ? 'none' : 'inline-flex';
     }
 
-    currentEditingStyleType = currentSelectedKey === 'issuer' ? 'issuerName' : currentSelectedKey;
-    syncCertificateColorControls(currentEditingStyleType);
+    const selectedStyleType = currentSelectedKey === 'issuer' ? 'issuerName' : currentSelectedKey;
+    currentEditingStyleType = getTextStyleDefinition(selectedStyleType) ? selectedStyleType : null;
+    lastTextSelectionRange = null;
+    if (currentEditingStyleType) syncCertificateColorControls(currentEditingStyleType);
 
     updateFloatingToolbarPosition(el);
 }
 
 function onCanvasClick(e) {
+    if (Date.now() < suppressCanvasClickUntil) return;
     if (e.target.id === 'certSheet' || e.target.classList.contains('stage-wrapper')) {
         selectElement(null);
         stopAllInlineEditing();
@@ -914,6 +952,7 @@ function syncCertificateColorControls(type = null) {
     const types = type ? [type] : Object.keys(textStyleDefinitions);
     types.forEach(styleType => {
         const definition = getTextStyleDefinition(styleType);
+        if (!definition) return;
         const config = getTextStyleConfig(styleType, false) || {};
         const color = normalizeCertificateTextColor(config[definition.colorKey], definition.defaultColor);
         const input = document.getElementById(`textColor_${styleType}`);
@@ -1319,6 +1358,7 @@ function initMouseResize() {
     function onResizeMove(e) {
         if (!isResizing || !resizingEl) return;
         if (e.cancelable) e.preventDefault();
+        suppressCanvasClickUntil = Date.now() + 250;
 
         const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
         const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
@@ -1336,15 +1376,15 @@ function initMouseResize() {
         let maxSize = 90;
 
         if (targetKey === 'logo') {
-            minSize = 30;
-            maxSize = 180;
+            minSize = mediaSizeLimits.logo.min;
+            maxSize = mediaSizeLimits.logo.max;
             let newSize = Math.max(minSize, Math.min(maxSize, Math.round(startSize + avgDelta)));
             updateLogoSize(newSize);
             if (tooltip) tooltip.textContent = `ขนาด: ${newSize}px`;
             return;
         } else if (targetKey === 'signature') {
-            minSize = 20;
-            maxSize = 140;
+            minSize = mediaSizeLimits.signature.min;
+            maxSize = mediaSizeLimits.signature.max;
             let newSize = Math.max(minSize, Math.min(maxSize, Math.round(startSize + avgDelta)));
             updateSignatureSize(newSize);
             if (tooltip) tooltip.textContent = `ขนาด: ${newSize}px`;
