@@ -274,7 +274,7 @@
         .el-signature {
             min-height: 30px;
             min-width: 80px;
-            line-height: 1.5;
+            line-height: 0;
         }
         .el-signature img {
             max-height: 100%;
@@ -432,7 +432,7 @@
                 <a id="certModalOpenExtBtn" href="#" style="display:none; background: #0F172A; color: white; border-radius: 999px; padding: 10px 20px; font-size: 0.9rem; font-weight: 600; text-decoration: none; align-items: center; gap: 6px;">
                     <i class="fas fa-external-link-alt"></i> เปิดรูปใน Safari / Chrome
                 </a>
-                <button type="button" onclick="closeCertModal()" class="btn btn-outline" style="border-radius: 999px; padding: 10px 20px; font-size: 0.9rem;">
+                <button type="button" id="certModalCloseBtn" onclick="closeCertModal()" class="btn btn-outline" style="border-radius: 999px; padding: 10px 20px; font-size: 0.9rem;">
                     ปิดหน้าต่าง
                 </button>
             </div>
@@ -442,6 +442,6 @@
     <!-- Scripts: html2canvas & jsPDF for 100% WYSIWYG Certificate Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="js/survey.js?v=3.8"></script>
+    <script src="js/survey.js?v=3.9"></script>
 </body>
 </html>

@@ -468,7 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isLine) {
                     if (lineNotice) lineNotice.style.display = 'block';
                     if (openExtBtn) {
-                        openExtBtn.style.display = 'inline-flex';
+                        openExtBtn.style.display = isMobileDevice() ? 'none' : 'inline-flex';
                         try {
                             const currentUrl = new URL(window.location.href);
                             currentUrl.searchParams.set('openExternalBrowser', '1');
@@ -489,6 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const downloadBtn = document.getElementById('downloadCertBtn');
                 if (downloadBtn) {
+                    downloadBtn.style.display = isMobileDevice() ? 'none' : 'inline-flex';
                     downloadBtn.onclick = () => {
                         const finalName = nameInput ? nameInput.value.trim() : '';
                         if (!finalName) {
@@ -502,6 +503,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const downloadImgBtn = document.getElementById('downloadCertImgBtn');
                 if (downloadImgBtn) {
+                    if (isMobileDevice()) {
+                        downloadImgBtn.innerHTML = '<i class="fas fa-share-alt"></i> บันทึกลงอัลบั้ม / แชร์';
+                    }
                     downloadImgBtn.onclick = () => {
                         const finalName = nameInput ? nameInput.value.trim() : '';
                         if (!finalName) {
@@ -597,7 +601,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (activeBtn) {
                 activeBtn.disabled = false;
                 activeBtn.innerHTML = (targetMode === 'image')
-                    ? '<i class="fas fa-image"></i> บันทึกเป็นรูปภาพ (PNG คมชัดสูง)'
+                    ? (isMobileDevice()
+                        ? '<i class="fas fa-share-alt"></i> บันทึกลงอัลบั้ม / แชร์'
+                        : '<i class="fas fa-image"></i> บันทึกเป็นรูปภาพ (PNG คมชัดสูง)')
                     : '<i class="fas fa-file-pdf"></i> สร้างและดาวน์โหลดเกียรติบัตร (PDF)';
             }
             alert('ไม่สามารถโหลดไลบรารีสร้างเกียรติบัตรได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต');
@@ -702,8 +708,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             ${cert.signature_url ? `
             <div class="cert-element el-signature" style="left: ${pos.signature.x}%; top: ${pos.signature.y}%;">
-                <div id="signatureImgBox" style="display: block; height: ${pos.signature.size}px;">
-                    <img src="${cert.signature_url}" style="height: 100%; object-fit: contain;" alt="Signature">
+                <div id="signatureImgBox" style="display:flex; align-items:center; justify-content:center; line-height:0; height:${pos.signature.size}px;">
+                    <img src="${cert.signature_url}" style="display:block; height:100%; max-height:100%; max-width:100%; object-fit:contain;" alt="Signature">
                 </div>
             </div>` : ''}
             <div class="cert-element el-issuer" style="left: ${pos.issuer.x}%; top: ${pos.issuer.y}%; font-size: ${pos.issuer.size}px;">
@@ -799,11 +805,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const modalPdfBtn = document.getElementById('certModalDownloadPdfBtn');
             const modalLineTip = document.getElementById('certModalLineTip');
             const modalExtBtn = document.getElementById('certModalOpenExtBtn');
+            const modalCloseBtn = document.getElementById('certModalCloseBtn');
+            const mobileMode = isMobileDevice();
 
             if (modalImg) modalImg.src = objectUrl;
             if (modalSaveBtn) {
                 modalSaveBtn.onclick = () => saveCertificateImageToDevice(currentCertificateAsset);
-                if (canShareCertificateFile(currentCertificateAsset)) {
+                if (mobileMode) {
+                    modalSaveBtn.innerHTML = '<i class="fas fa-share-alt"></i> บันทึกลงอัลบั้ม / แชร์';
+                    modalSaveBtn.style.width = '100%';
+                    modalSaveBtn.style.maxWidth = '360px';
+                } else if (canShareCertificateFile(currentCertificateAsset)) {
                     modalSaveBtn.innerHTML = '<i class="fas fa-share-alt"></i> บันทึกลงอัลบั้ม / แชร์';
                 } else if (isLine && publicUrl) {
                     modalSaveBtn.innerHTML = '<i class="fas fa-external-link-alt"></i> เปิด Safari / Chrome เพื่อบันทึก';
@@ -814,8 +826,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (modalPngBtn) {
                 modalPngBtn.href = objectUrl;
                 modalPngBtn.download = pngFilename;
+                modalPngBtn.style.display = mobileMode ? 'none' : 'inline-flex';
             }
             if (modalOpenImageBtn) {
+                modalOpenImageBtn.style.display = mobileMode ? 'none' : 'inline-flex';
                 modalOpenImageBtn.onclick = () => {
                     const target = publicUrl || objectUrl;
                     if (isLine && publicUrl) {
@@ -825,6 +839,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 };
             }
+            if (modalPdfBtn) modalPdfBtn.style.display = mobileMode ? 'none' : 'inline-flex';
+            if (modalCloseBtn) modalCloseBtn.style.display = mobileMode ? 'none' : 'inline-flex';
             if (modalLineTip) {
                 modalLineTip.style.display = (isLine || isMobileDevice()) ? 'block' : 'none';
                 if (isLine) {
@@ -836,7 +852,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             if (modalExtBtn) {
-                if (isLine && publicUrl) {
+                if (!mobileMode && isLine && publicUrl) {
                     modalExtBtn.style.display = 'inline-flex';
                     modalExtBtn.href = addLineExternalBrowserParam(publicUrl);
                 } else {
@@ -889,7 +905,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (activeBtn) {
                 activeBtn.disabled = false;
                 activeBtn.innerHTML = (targetMode === 'image')
-                    ? '<i class="fas fa-image"></i> บันทึกเป็นรูปภาพ (PNG คมชัดสูง)'
+                    ? (isMobileDevice()
+                        ? '<i class="fas fa-share-alt"></i> บันทึกลงอัลบั้ม / แชร์'
+                        : '<i class="fas fa-image"></i> บันทึกเป็นรูปภาพ (PNG คมชัดสูง)')
                     : '<i class="fas fa-file-pdf"></i> สร้างและดาวน์โหลดเกียรติบัตร (PDF)';
             }
         }
