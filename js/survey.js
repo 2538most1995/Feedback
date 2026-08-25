@@ -556,8 +556,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             ${cert.signature_url ? `
             <div class="cert-element el-signature" style="left: ${pos.signature.x}%; top: ${pos.signature.y}%;">
-                <div id="signatureImgBox" style="height: ${pos.signature.size}px; display: flex; align-items: center; justify-content: center;">
-                    <img src="${cert.signature_url}" style="height: 100%; max-width: 260px; object-fit: contain;" alt="Signature">
+                <div id="signatureImgBox" style="display: block; height: ${pos.signature.size}px;">
+                    <img src="${cert.signature_url}" style="height: 100%; object-fit: contain;" alt="Signature">
                 </div>
             </div>` : ''}
             <div class="cert-element el-issuer" style="left: ${pos.issuer.x}%; top: ${pos.issuer.y}%; font-size: ${pos.issuer.size}px;">

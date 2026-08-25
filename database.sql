@@ -90,6 +90,27 @@ CREATE TABLE certificates (
   FOREIGN KEY (survey_id) REFERENCES surveys(id) ON DELETE CASCADE
 );
 
+CREATE TABLE certificate_templates (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL UNIQUE,
+  title VARCHAR(255) DEFAULT 'เกียรติบัตร',
+  subtitle VARCHAR(255) DEFAULT 'มอบให้ไว้เพื่อแสดงว่า',
+  recipient_name VARCHAR(255) DEFAULT '{name}',
+  body_text TEXT,
+  issued_date VARCHAR(100) DEFAULT '{date}',
+  issuer_name VARCHAR(255) DEFAULT '',
+  issuer_title VARCHAR(255) DEFAULT '',
+  logo_url LONGTEXT,
+  signature_url LONGTEXT,
+  bg_image_url LONGTEXT,
+  bg_preset VARCHAR(50) DEFAULT 'gold-luxury',
+  elements_config JSON,
+  created_by INT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (created_by) REFERENCES admins(id) ON DELETE SET NULL
+);
+
 -- SAMPLE DATA
 INSERT INTO surveys (id, title, category, description, status, created_by) VALUES 
 (1, 'แบบประเมินความพึงพอใจการจัดกิจกรรมสัมมนาวิชาการ', 'สัมมนา', 'ขอความอนุเคราะห์ตอบแบบสอบถามเพื่อนำไปปรับปรุงการจัดกิจกรรมในครั้งต่อไป', 'published', 1),

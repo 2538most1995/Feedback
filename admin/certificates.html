@@ -21,6 +21,11 @@
                 grid-template-columns: 1fr;
             }
         }
+        @media (max-width: 700px) {
+            .certificate-template-fields {
+                grid-template-columns: 1fr !important;
+            }
+        }
 
         /* Certificate Settings Panel */
         .settings-panel {
@@ -573,6 +578,46 @@
                     </div>
                 </div>
 
+                <!-- Reusable Certificate Templates -->
+                <div class="card" style="margin-bottom: 20px; padding: 16px 20px; border-left: 4px solid var(--primary);">
+                    <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
+                        <i class="fas fa-layer-group fa-lg" style="color: var(--primary); margin-top: 3px;"></i>
+                        <div>
+                            <div style="font-weight: 700; color: var(--text);">เทมเพลตเกียรติบัตรที่ใช้ซ้ำได้</div>
+                            <div style="font-size: 0.78rem; color: var(--text-light); margin-top: 2px;">บันทึกพื้นหลัง โลโก้ ลายเซ็น ข้อความ ขนาด และตำแหน่งทั้งหมด เพื่อนำไปใช้กับแบบประเมินรอบต่อไป</div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr); gap: 10px; align-items: end;" class="certificate-template-fields">
+                        <div>
+                            <label class="form-label" for="certificateTemplateSelect" style="font-size: 0.8rem; margin-bottom: 4px;">เลือกเทมเพลตเดิม</label>
+                            <select id="certificateTemplateSelect" class="form-control" onchange="onCertificateTemplateSelectionChange(this.value)">
+                                <option value="">-- ยังไม่เลือกเทมเพลต --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" for="certificateTemplateName" style="font-size: 0.8rem; margin-bottom: 4px;">ชื่อเทมเพลต</label>
+                            <input type="text" id="certificateTemplateName" class="form-control" maxlength="150" placeholder="เช่น แบบมาตรฐาน สกร. เสนา">
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+                        <button type="button" class="btn btn-outline" id="applyCertificateTemplateBtn" onclick="applySelectedCertificateTemplate()" disabled>
+                            <i class="fas fa-download"></i> ใช้เทมเพลตนี้
+                        </button>
+                        <button type="button" class="btn btn-primary" id="createCertificateTemplateBtn" onclick="createCertificateTemplate()">
+                            <i class="fas fa-plus"></i> บันทึกเป็นเทมเพลตใหม่
+                        </button>
+                        <button type="button" class="btn btn-outline" id="updateCertificateTemplateBtn" onclick="updateSelectedCertificateTemplate()" disabled>
+                            <i class="fas fa-pen"></i> อัปเดตเทมเพลต
+                        </button>
+                        <button type="button" class="btn btn-outline" id="deleteCertificateTemplateBtn" style="color: #DC2626; border-color: #FCA5A5;" onclick="deleteSelectedCertificateTemplate()" disabled>
+                            <i class="fas fa-trash"></i> ลบ
+                        </button>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-light); margin-top: 8px;">
+                        <i class="fas fa-info-circle"></i> การใช้เทมเพลตจะนำค่ามาใส่ในหน้าจอนี้ก่อน กรุณากด “บันทึกการตั้งค่า” เพื่อผูกกับแบบประเมินที่เลือก
+                    </div>
+                </div>
+
                 <!-- Main Designer Grid -->
                 <div class="cert-container">
                     <!-- Left: Control Panel -->
@@ -879,6 +924,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="js/admin.js?v=2.4"></script>
-    <script src="js/certificates.js?v=3.5"></script>
+    <script src="js/certificates.js?v=4.0"></script>
 </body>
 </html>

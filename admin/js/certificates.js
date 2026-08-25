@@ -46,12 +46,230 @@ let currentScale = 1.0;
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     loadSurveysList();
+    loadCertificateTemplates();
     initDragAndDrop();
     initMouseResize();
     initInlineEditing();
 });
 
 let certSurveyCombobox = null;
+let certificateTemplates = [];
+
+function setCertificateTemplateActionsEnabled(enabled) {
+    ['applyCertificateTemplateBtn', 'updateCertificateTemplateBtn', 'deleteCertificateTemplateBtn'].forEach(id => {
+        const button = document.getElementById(id);
+        if (button) button.disabled = !enabled;
+    });
+}
+
+async function loadCertificateTemplates(selectedId = null) {
+    const select = document.getElementById('certificateTemplateSelect');
+    if (!select) return;
+
+    try {
+        const res = await api('../api/certificate_templates.php');
+        if (!res || !res.success) {
+            throw new Error(res ? res.message : 'ไม่สามารถโหลดรายการเทมเพลตได้');
+        }
+
+        certificateTemplates = Array.isArray(res.data) ? res.data : [];
+        select.innerHTML = '<option value="">-- ยังไม่เลือกเทมเพลต --</option>';
+
+        certificateTemplates.forEach(template => {
+            const option = document.createElement('option');
+            option.value = String(template.id);
+            option.textContent = template.name;
+            select.appendChild(option);
+        });
+
+        if (selectedId && certificateTemplates.some(template => Number(template.id) === Number(selectedId))) {
+            select.value = String(selectedId);
+        } else {
+            select.value = '';
+        }
+        onCertificateTemplateSelectionChange(select.value);
+    } catch (err) {
+        console.error('Load certificate templates error:', err);
+        select.innerHTML = '<option value="">-- โหลดเทมเพลตไม่สำเร็จ --</option>';
+        setCertificateTemplateActionsEnabled(false);
+        showToast(err.message || 'ไม่สามารถโหลดรายการเทมเพลตได้', 'error');
+    }
+}
+
+function onCertificateTemplateSelectionChange(value) {
+    const selectedId = Number(value) || 0;
+    const selected = certificateTemplates.find(template => Number(template.id) === selectedId);
+    const nameInput = document.getElementById('certificateTemplateName');
+    if (nameInput) nameInput.value = selected ? selected.name : '';
+    setCertificateTemplateActionsEnabled(Boolean(selected));
+}
+
+function getCertificateTemplatePayload() {
+    syncAllUIInputsToConfig();
+    const nameInput = document.getElementById('certificateTemplateName');
+
+    return {
+        name: nameInput ? nameInput.value.trim() : '',
+        title: certConfig.title || 'เกียรติบัตร',
+        subtitle: certConfig.subtitle || 'มอบให้ไว้เพื่อแสดงว่า',
+        recipient_name: certConfig.recipient_name || '{name}',
+        body_text: certConfig.body_text || '',
+        issued_date: certConfig.issued_date || '{date}',
+        issuer_name: certConfig.issuer_name || '',
+        issuer_title: certConfig.issuer_title || '',
+        logo_url: certConfig.logo_url || '',
+        signature_url: certConfig.signature_url || '',
+        bg_image_url: certConfig.bg_image_url || '',
+        bg_preset: certConfig.bg_preset || 'gold-luxury',
+        elements_config: certConfig.elements_config || defaultPositions
+    };
+}
+
+async function createCertificateTemplate() {
+    const payload = getCertificateTemplatePayload();
+    if (!payload.name) {
+        showToast('กรุณาระบุชื่อเทมเพลตก่อนบันทึก', 'warning');
+        const nameInput = document.getElementById('certificateTemplateName');
+        if (nameInput) nameInput.focus();
+        return;
+    }
+
+    const button = document.getElementById('createCertificateTemplateBtn');
+    setButtonLoading(button, true, 'กำลังบันทึก...');
+    try {
+        const res = await api('../api/certificate_templates.php', 'POST', payload);
+        if (!res || !res.success) {
+            throw new Error(res ? res.message : 'ไม่สามารถบันทึกเทมเพลตได้');
+        }
+
+        await loadCertificateTemplates(res.data.id);
+        showToast('บันทึกเทมเพลตเกียรติบัตรใหม่สำเร็จ', 'success');
+    } catch (err) {
+        console.error('Create certificate template error:', err);
+        showToast(err.message || 'ไม่สามารถบันทึกเทมเพลตได้', 'error');
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+async function updateSelectedCertificateTemplate() {
+    const select = document.getElementById('certificateTemplateSelect');
+    const id = select ? Number(select.value) : 0;
+    if (!id) {
+        showToast('กรุณาเลือกเทมเพลตที่ต้องการอัปเดต', 'warning');
+        return;
+    }
+
+    const payload = { id, ...getCertificateTemplatePayload() };
+    if (!payload.name) {
+        showToast('กรุณาระบุชื่อเทมเพลต', 'warning');
+        return;
+    }
+
+    const button = document.getElementById('updateCertificateTemplateBtn');
+    setButtonLoading(button, true, 'กำลังอัปเดต...');
+    try {
+        const res = await api('../api/certificate_templates.php', 'PUT', payload);
+        if (!res || !res.success) {
+            throw new Error(res ? res.message : 'ไม่สามารถอัปเดตเทมเพลตได้');
+        }
+
+        await loadCertificateTemplates(id);
+        showToast('อัปเดตชื่อและรายละเอียดเทมเพลตสำเร็จ', 'success');
+    } catch (err) {
+        console.error('Update certificate template error:', err);
+        showToast(err.message || 'ไม่สามารถอัปเดตเทมเพลตได้', 'error');
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+async function applySelectedCertificateTemplate() {
+    const select = document.getElementById('certificateTemplateSelect');
+    const id = select ? Number(select.value) : 0;
+    if (!id) {
+        showToast('กรุณาเลือกเทมเพลตที่ต้องการใช้', 'warning');
+        return;
+    }
+
+    const button = document.getElementById('applyCertificateTemplateBtn');
+    setButtonLoading(button, true, 'กำลังโหลด...');
+    try {
+        const res = await api(`../api/certificate_templates.php?id=${id}`);
+        if (!res || !res.success || !res.data) {
+            throw new Error(res ? res.message : 'ไม่สามารถโหลดเทมเพลตได้');
+        }
+
+        const template = res.data;
+        const templatePositions = template.elements_config && typeof template.elements_config === 'object'
+            ? template.elements_config
+            : {};
+        const currentEnabled = certConfig.is_enabled;
+
+        certConfig = {
+            ...certConfig,
+            title: template.title ?? 'เกียรติบัตร',
+            subtitle: template.subtitle ?? 'มอบให้ไว้เพื่อแสดงว่า',
+            recipient_name: template.recipient_name ?? '{name}',
+            body_text: template.body_text ?? '',
+            issued_date: template.issued_date ?? '{date}',
+            issuer_name: template.issuer_name ?? '',
+            issuer_title: template.issuer_title ?? '',
+            logo_url: template.logo_url ?? '',
+            signature_url: template.signature_url ?? '',
+            bg_image_url: template.bg_image_url ?? '',
+            bg_preset: template.bg_preset || 'gold-luxury',
+            elements_config: Object.fromEntries(
+                Object.keys(defaultPositions).map(key => [
+                    key,
+                    { ...defaultPositions[key], ...(templatePositions[key] || {}) }
+                ])
+            ),
+            is_enabled: currentEnabled
+        };
+
+        selectElement(null);
+        stopAllInlineEditing();
+        applyConfigToUI();
+        showToast('นำเทมเพลตมาใช้แล้ว กรุณากดบันทึกการตั้งค่าเพื่อยืนยัน', 'success');
+    } catch (err) {
+        console.error('Apply certificate template error:', err);
+        showToast(err.message || 'ไม่สามารถนำเทมเพลตมาใช้ได้', 'error');
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+function deleteSelectedCertificateTemplate() {
+    const select = document.getElementById('certificateTemplateSelect');
+    const id = select ? Number(select.value) : 0;
+    const selected = certificateTemplates.find(template => Number(template.id) === id);
+    if (!id || !selected) {
+        showToast('กรุณาเลือกเทมเพลตที่ต้องการลบ', 'warning');
+        return;
+    }
+
+    showConfirm(`ต้องการลบเทมเพลต “${escapeHtml(selected.name)}” ใช่หรือไม่?`, async () => {
+        const button = document.getElementById('deleteCertificateTemplateBtn');
+        setButtonLoading(button, true, 'กำลังลบ...');
+        try {
+            const res = await api(`../api/certificate_templates.php?id=${id}`, 'DELETE');
+            if (!res || !res.success) {
+                throw new Error(res ? res.message : 'ไม่สามารถลบเทมเพลตได้');
+            }
+
+            await loadCertificateTemplates();
+            showToast('ลบเทมเพลตเกียรติบัตรสำเร็จ', 'success');
+        } catch (err) {
+            console.error('Delete certificate template error:', err);
+            showToast(err.message || 'ไม่สามารถลบเทมเพลตได้', 'error');
+        } finally {
+            setButtonLoading(button, false);
+            const currentSelect = document.getElementById('certificateTemplateSelect');
+            setCertificateTemplateActionsEnabled(Boolean(currentSelect && currentSelect.value));
+        }
+    });
+}
 
 // Load all surveys for selector
 async function loadSurveysList() {
