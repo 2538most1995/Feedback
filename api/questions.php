@@ -19,10 +19,11 @@ if ($method === 'POST') {
         ]);
         jsonResponse(['id' => $pdo->lastInsertId()], 201, "Section created");
     } elseif ($type === 'question') {
-        $stmt = $pdo->prepare("INSERT INTO survey_questions (section_id, question_text, question_type, options_json, is_required, sort_order) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO survey_questions (section_id, question_text, question_description, question_type, options_json, is_required, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $input['section_id'],
             $input['question_text'],
+            trim($input['question_description'] ?? $input['description'] ?? ''),
             $input['question_type'] ?? 'rating',
             isset($input['options']) ? json_encode($input['options']) : null,
             $input['is_required'] ?? 1,
@@ -44,9 +45,10 @@ if ($method === 'POST') {
         $stmt->execute([$input['title'], $input['section_type'] ?? 'rating', $id]);
         jsonResponse(null, 200, "Section updated");
     } elseif ($type === 'question') {
-        $stmt = $pdo->prepare("UPDATE survey_questions SET question_text = ?, question_type = ?, options_json = ?, is_required = ? WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE survey_questions SET question_text = ?, question_description = ?, question_type = ?, options_json = ?, is_required = ? WHERE id = ?");
         $stmt->execute([
             $input['question_text'],
+            trim($input['question_description'] ?? $input['description'] ?? ''),
             $input['question_type'] ?? 'rating',
             isset($input['options']) ? json_encode($input['options']) : null,
             $input['is_required'] ?? 1,

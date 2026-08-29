@@ -232,9 +232,10 @@ function addQuestion(secId, qData = null) {
     if (!questionsContainer) return;
 
     const qText = qData ? qData.question_text || '' : '';
+    const qDescription = qData ? qData.question_description || qData.description || '' : '';
     const qType = qData ? qData.question_type || 'rating' : 'rating';
     const isReq = qData ? (qData.is_required !== 0 && qData.is_required !== false) : true;
-    const options = qData && Array.isArray(qData.options) ? qData.options : (qType === 'radio' || qType === 'checkbox' ? ['ตัวเลือกที่ 1', 'ตัวเลือกที่ 2'] : []);
+    const options = qData && Array.isArray(qData.options) ? qData.options : (['radio', 'checkbox', 'dropdown'].includes(qType) ? ['ตัวเลือกที่ 1', 'ตัวเลือกที่ 2'] : []);
 
     const qHtml = `
         <div class="question-card" id="q_${qId}">
@@ -245,10 +246,13 @@ function addQuestion(secId, qData = null) {
                     <select class="form-control question-type-select" onchange="onQuestionTypeChange(${qId}, this.value)">
                         <option value="rating" ${qType === 'rating' ? 'selected' : ''}>⭐️ คะแนน 1-5 (Rating)</option>
                         <option value="radio" ${qType === 'radio' ? 'selected' : ''}>🔘 ตัวเลือกเดี่ยว (Radio)</option>
+                        <option value="dropdown" ${qType === 'dropdown' ? 'selected' : ''}>🔽 รายการดรอปดาวน์ (Dropdown)</option>
                         <option value="checkbox" ${qType === 'checkbox' ? 'selected' : ''}>☑️ หลายตัวเลือก (Checkbox)</option>
                         <option value="text" ${qType === 'text' ? 'selected' : ''}>💬 ข้อความเสรี (Text)</option>
                     </select>
                 </div>
+
+                <textarea class="form-control question-description-input" rows="2" placeholder="คำอธิบายเพิ่มเติมของคำถาม (ไม่บังคับ)">${escapeHtml(qDescription)}</textarea>
 
                 <!-- Rating Preview -->
                 <div class="rating-preview-box" id="rating_preview_${qId}" style="${qType === 'rating' ? '' : 'display:none;'}">
@@ -261,7 +265,7 @@ function addQuestion(secId, qData = null) {
                 </div>
 
                 <!-- Choice Options Area -->
-                <div class="options-container" id="options_container_${qId}" style="${(qType === 'radio' || qType === 'checkbox') ? '' : 'display:none;'}">
+                <div class="options-container" id="options_container_${qId}" style="${['radio', 'checkbox', 'dropdown'].includes(qType) ? '' : 'display:none;'}">
                     <div style="font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 8px;">
                         <i class="fas fa-list-ul"></i> ตัวเลือกคำตอบ:
                     </div>
@@ -292,8 +296,8 @@ function addQuestion(secId, qData = null) {
 
     questionsContainer.insertAdjacentHTML('beforeend', qHtml);
 
-    // Populate initial options if radio or checkbox
-    if (qType === 'radio' || qType === 'checkbox') {
+    // Populate initial options for every choice-based question type
+    if (['radio', 'checkbox', 'dropdown'].includes(qType)) {
         if (options.length === 0) {
             addOptionItem(qId, 'ตัวเลือกที่ 1');
             addOptionItem(qId, 'ตัวเลือกที่ 2');
@@ -313,7 +317,7 @@ function onQuestionTypeChange(qId, newType) {
     if (newType === 'rating') {
         if (ratingBox) ratingBox.style.display = 'flex';
         if (optionsBox) optionsBox.style.display = 'none';
-    } else if (newType === 'radio' || newType === 'checkbox') {
+    } else if (['radio', 'checkbox', 'dropdown'].includes(newType)) {
         if (ratingBox) ratingBox.style.display = 'none';
         if (optionsBox) optionsBox.style.display = 'block';
         if (optionsList && optionsList.children.length === 0) {
@@ -438,10 +442,11 @@ function collectSurveyPayload(status) {
             }
 
             const qType = qCard.querySelector('.question-type-select').value || 'rating';
+            const qDescription = (qCard.querySelector('.question-description-input')?.value || '').trim();
             const isReq = qCard.querySelector('.q-req-checkbox').checked ? 1 : 0;
 
             let options = [];
-            if (qType === 'radio' || qType === 'checkbox') {
+            if (['radio', 'checkbox', 'dropdown'].includes(qType)) {
                 const optInputs = qCard.querySelectorAll('.option-text-input');
                 optInputs.forEach(opt => {
                     const optVal = (opt.value || '').trim();
@@ -454,6 +459,7 @@ function collectSurveyPayload(status) {
 
             questions.push({
                 question_text: qText,
+                question_description: qDescription,
                 question_type: qType,
                 options: options,
                 is_required: isReq,
@@ -885,6 +891,7 @@ function parseExcelRows(rows, fileName = '') {
         const secTitle = (row['ส่วนประเมิน'] || row['ส่วนที่'] || row['Section'] || row['หมวด'] || '').trim();
         const secType = (row['ประเภทส่วนประเมิน'] || row['Section Type'] || '').toLowerCase().trim();
         const qText = (row['ข้อคำถาม'] || row['คำถาม'] || row['Question'] || row['รายการ'] || '').trim();
+        const qDescription = (row['คำอธิบายเพิ่มเติม'] || row['คำอธิบาย'] || row['Question Description'] || row['Description'] || '').toString().trim();
         const qType = (row['ประเภทคำถาม'] || row['Question Type'] || row['ประเภท'] || 'rating').toLowerCase().trim();
         const optionsRaw = (row['ตัวเลือกคำตอบ'] || row['ตัวเลือก'] || row['Options'] || '').toString().trim();
         const reqRaw = (row['จำเป็นต้องตอบ'] || row['Required'] || row['จำเป็น'] || '1').toString().trim();
@@ -913,7 +920,9 @@ function parseExcelRows(rows, fileName = '') {
         }
 
         let normalizedQType = 'rating';
-        if (qType.includes('radio') || qType.includes('เลือกตอบ') || qType.includes('ตัวเลือกเดียว')) {
+        if (qType.includes('dropdown') || qType.includes('drop-down') || qType.includes('ดรอปดาวน์') || qType.includes('รายการเลือก')) {
+            normalizedQType = 'dropdown';
+        } else if (qType.includes('radio') || qType.includes('เลือกตอบ') || qType.includes('ตัวเลือกเดียว')) {
             normalizedQType = 'radio';
         } else if (qType.includes('check') || qType.includes('หลายตัวเลือก')) {
             normalizedQType = 'checkbox';
@@ -927,7 +936,7 @@ function parseExcelRows(rows, fileName = '') {
         if (optionsRaw) {
             options = optionsRaw.split(/[,;\n|]/).map(o => o.trim()).filter(o => o.length > 0);
         }
-        if ((normalizedQType === 'radio' || normalizedQType === 'checkbox') && options.length === 0) {
+        if (['radio', 'checkbox', 'dropdown'].includes(normalizedQType) && options.length === 0) {
             options = ['ตัวเลือกที่ 1', 'ตัวเลือกที่ 2'];
         }
 
@@ -935,6 +944,7 @@ function parseExcelRows(rows, fileName = '') {
 
         sectionsMap.get(currentSecTitle).questions.push({
             question_text: qText,
+            question_description: qDescription,
             question_type: normalizedQType,
             options: options,
             is_required: isRequired
@@ -1045,8 +1055,10 @@ function showImportPreview(survey) {
         qHtml += `<div style="font-weight:600; color:var(--text); margin-top:${sIdx > 0 ? '6px' : '0'};">${escapeHtml(sec.title || 'ส่วนที่ ' + (sIdx + 1))}</div>`;
         if (sec.questions) {
             sec.questions.forEach((q, qIdx) => {
-                const typeBadge = q.question_type === 'rating' ? 'คะแนน 1-5' : (q.question_type === 'radio' ? 'ตัวเลือกเดียว' : (q.question_type === 'checkbox' ? 'หลายตัวเลือก' : 'ข้อความ'));
-                qHtml += `<div style="margin-left: 12px; color: var(--text-light);">${qIdx + 1}. ${escapeHtml(q.question_text)} <span style="font-size:0.75rem; background:#E2E8F0; padding:1px 6px; border-radius:4px; margin-left:4px;">${typeBadge}</span></div>`;
+                const typeBadge = q.question_type === 'rating' ? 'คะแนน 1-5' : (q.question_type === 'radio' ? 'ตัวเลือกเดียว' : (q.question_type === 'dropdown' ? 'ดรอปดาวน์' : (q.question_type === 'checkbox' ? 'หลายตัวเลือก' : 'ข้อความ')));
+                const questionDescription = q.question_description || q.description || '';
+                const descriptionHtml = questionDescription ? `<div style="margin-left: 28px; color: #94A3B8; font-size: 0.78rem;">${escapeHtml(questionDescription)}</div>` : '';
+                qHtml += `<div style="margin-left: 12px; color: var(--text-light);">${qIdx + 1}. ${escapeHtml(q.question_text)} <span style="font-size:0.75rem; background:#E2E8F0; padding:1px 6px; border-radius:4px; margin-left:4px;">${typeBadge}</span></div>${descriptionHtml}`;
             });
         }
     });
@@ -1080,6 +1092,7 @@ function downloadExcelTemplate() {
             'ส่วนประเมิน': 'ส่วนที่ 1: ข้อมูลทั่วไปของผู้ตอบแบบประเมิน',
             'ประเภทส่วนประเมิน': 'demographic',
             'ข้อคำถาม': 'เพศ',
+            'คำอธิบายเพิ่มเติม': 'เลือกเพศที่ตรงกับข้อมูลของผู้ตอบ',
             'ประเภทคำถาม': 'radio',
             'ตัวเลือกคำตอบ': 'ชาย, หญิง, อื่นๆ / ไม่ระบุ',
             'จำเป็นต้องตอบ': 1
@@ -1088,7 +1101,8 @@ function downloadExcelTemplate() {
             'ส่วนประเมิน': 'ส่วนที่ 1: ข้อมูลทั่วไปของผู้ตอบแบบประเมิน',
             'ประเภทส่วนประเมิน': 'demographic',
             'ข้อคำถาม': 'สถานะภาพ',
-            'ประเภทคำถาม': 'radio',
+            'คำอธิบายเพิ่มเติม': 'เลือกรายการที่ตรงกับสถานะปัจจุบันมากที่สุด',
+            'ประเภทคำถาม': 'dropdown',
             'ตัวเลือกคำตอบ': 'นักเรียน/นักศึกษา, อาจารย์/บุคลากร, บุคคลภายนอก',
             'จำเป็นต้องตอบ': 1
         },
@@ -1096,6 +1110,7 @@ function downloadExcelTemplate() {
             'ส่วนประเมิน': 'ส่วนที่ 2: ความพึงพอใจต่อการให้บริการ',
             'ประเภทส่วนประเมิน': 'rating',
             'ข้อคำถาม': 'การประชาสัมพันธ์และข้อมูลข่าวสาร',
+            'คำอธิบายเพิ่มเติม': 'พิจารณาความชัดเจนและความทั่วถึงของข้อมูล',
             'ประเภทคำถาม': 'rating',
             'ตัวเลือกคำตอบ': '',
             'จำเป็นต้องตอบ': 1
@@ -1104,6 +1119,7 @@ function downloadExcelTemplate() {
             'ส่วนประเมิน': 'ส่วนที่ 2: ความพึงพอใจต่อการให้บริการ',
             'ประเภทส่วนประเมิน': 'rating',
             'ข้อคำถาม': 'ความสะดวกและรวดเร็วในการให้บริการ',
+            'คำอธิบายเพิ่มเติม': '',
             'ประเภทคำถาม': 'rating',
             'ตัวเลือกคำตอบ': '',
             'จำเป็นต้องตอบ': 1
@@ -1112,6 +1128,7 @@ function downloadExcelTemplate() {
             'ส่วนประเมิน': 'ส่วนที่ 2: ความพึงพอใจต่อการให้บริการ',
             'ประเภทส่วนประเมิน': 'rating',
             'ข้อคำถาม': 'ความสุภาพและความพร้อมในการให้บริการของเจ้าหน้าที่',
+            'คำอธิบายเพิ่มเติม': '',
             'ประเภทคำถาม': 'rating',
             'ตัวเลือกคำตอบ': '',
             'จำเป็นต้องตอบ': 1
@@ -1120,6 +1137,7 @@ function downloadExcelTemplate() {
             'ส่วนประเมิน': 'ส่วนที่ 2: ความพึงพอใจต่อการให้บริการ',
             'ประเภทส่วนประเมิน': 'rating',
             'ข้อคำถาม': 'ภาพรวมความพึงพอใจในการรับบริการ',
+            'คำอธิบายเพิ่มเติม': '',
             'ประเภทคำถาม': 'rating',
             'ตัวเลือกคำตอบ': '',
             'จำเป็นต้องตอบ': 1
@@ -1128,6 +1146,7 @@ function downloadExcelTemplate() {
             'ส่วนประเมิน': 'ส่วนที่ 3: ข้อเสนอแนะเพิ่มเติม',
             'ประเภทส่วนประเมิน': 'text',
             'ข้อคำถาม': 'ข้อคิดเห็นและข้อเสนอแนะเพิ่มเติมสำหรับการพัฒนาการให้บริการ',
+            'คำอธิบายเพิ่มเติม': 'สามารถระบุรายละเอียดหรือยกตัวอย่างประกอบได้',
             'ประเภทคำถาม': 'text',
             'ตัวเลือกคำตอบ': '',
             'จำเป็นต้องตอบ': 0
@@ -1138,6 +1157,7 @@ function downloadExcelTemplate() {
     ws['!cols'] = [
         { wch: 36 },
         { wch: 18 },
+        { wch: 45 },
         { wch: 45 },
         { wch: 15 },
         { wch: 40 },
@@ -1163,13 +1183,15 @@ function downloadJsonTemplate() {
                 questions: [
                     {
                         question_text: "เพศ",
+                        question_description: "เลือกเพศที่ตรงกับข้อมูลของผู้ตอบ",
                         question_type: "radio",
                         options: ["ชาย", "หญิง", "อื่นๆ / ไม่ระบุ"],
                         is_required: 1
                     },
                     {
                         question_text: "สถานภาพ",
-                        question_type: "radio",
+                        question_description: "เลือกรายการที่ตรงกับสถานะปัจจุบันมากที่สุด",
+                        question_type: "dropdown",
                         options: ["นักเรียน/นักศึกษา", "อาจารย์/บุคลากร", "บุคคลภายนอก"],
                         is_required: 1
                     }
@@ -1181,6 +1203,7 @@ function downloadJsonTemplate() {
                 questions: [
                     {
                         question_text: "การประชาสัมพันธ์และข้อมูลข่าวสาร",
+                        question_description: "พิจารณาความชัดเจนและความทั่วถึงของข้อมูล",
                         question_type: "rating",
                         is_required: 1
                     },
@@ -1207,6 +1230,7 @@ function downloadJsonTemplate() {
                 questions: [
                     {
                         question_text: "ข้อคิดเห็นและข้อเสนอแนะเพิ่มเติมสำหรับการพัฒนาการให้บริการ",
+                        question_description: "สามารถระบุรายละเอียดหรือยกตัวอย่างประกอบได้",
                         question_type: "text",
                         is_required: 0
                     }

@@ -111,6 +111,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const qType = q.question_type || 'rating';
                 const isRequired = q.is_required ? true : false;
                 const reqStar = isRequired ? '<span class="required-badge" title="จำเป็นต้องตอบ">*</span>' : '';
+                const questionDescription = q.question_description || q.description || '';
+                const descriptionHtml = questionDescription
+                    ? `<p class="question-description" style="margin: -6px 0 12px; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.55;">${escapeHtml(questionDescription)}</p>`
+                    : '';
                 
                 let options = [];
                 if (Array.isArray(q.options)) {
@@ -132,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p style="font-weight: 600; font-size: 1rem; margin-bottom: 14px; color: var(--text);">
                                 ${questionIndex}. ${escapeHtml(q.question_text)} ${reqStar}
                             </p>
+                            ${descriptionHtml}
                             <div class="emoji-rating">
                                 <label><input type="radio" name="q_${q.id}" value="5" ${isRequired ? 'required' : ''}><span class="emoji">😍</span><span class="rating-num">5</span><span class="rating-text">มากที่สุด</span></label>
                                 <label><input type="radio" name="q_${q.id}" value="4"><span class="emoji">😊</span><span class="rating-num">4</span><span class="rating-text">มาก</span></label>
@@ -147,6 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p style="font-weight: 600; font-size: 1rem; margin-bottom: 10px; color: var(--text);">
                                 ${questionIndex}. ${escapeHtml(q.question_text)} ${reqStar}
                             </p>
+                            ${descriptionHtml}
                             <div class="radio-group">
                     `;
                     options.forEach((opt) => {
@@ -158,6 +164,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         `;
                     });
                     html += `</div></div>`;
+                } else if (qType === 'dropdown') {
+                    html += `
+                        <div style="margin-bottom: 0.5rem;">
+                            <p style="font-weight: 600; font-size: 1rem; margin-bottom: 10px; color: var(--text);">
+                                ${questionIndex}. ${escapeHtml(q.question_text)} ${reqStar}
+                            </p>
+                            ${descriptionHtml}
+                            <select class="form-control" name="q_${q.id}" style="width: 100%; border-radius: 8px; padding: 11px 12px;" ${isRequired ? 'required' : ''}>
+                                <option value="">-- กรุณาเลือก --</option>
+                                ${options.map(opt => `<option value="${escapeHtmlAttr(opt)}">${escapeHtml(opt)}</option>`).join('')}
+                            </select>
+                        </div>
+                    `;
                 } else if (qType === 'checkbox') {
                     html += `
                         <div style="margin-bottom: 0.5rem;">
@@ -165,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 ${questionIndex}. ${escapeHtml(q.question_text)} ${reqStar} 
                                 <span style="font-weight: normal; font-size: 0.8rem; color: var(--text-secondary);">(เลือกได้มากกว่า 1 ข้อ)</span>
                             </p>
+                            ${descriptionHtml}
                             <div class="checkbox-group">
                     `;
                     options.forEach((opt) => {
@@ -183,6 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <i class="fas fa-comment-dots" style="color:var(--primary); margin-right:6px;"></i>
                                 ${questionIndex}. ${escapeHtml(q.question_text)} ${reqStar}
                             </p>
+                            ${descriptionHtml}
                             <textarea class="form-control" name="q_${q.id}" rows="3" placeholder="พิมพ์คำตอบหรือข้อเสนอแนะที่นี่..." style="width: 100%; border-radius: 8px; padding: 10px 12px;" ${isRequired ? 'required' : ''}></textarea>
                         </div>
                     `;
@@ -250,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     text_value: values.join(', ')
                                 });
                             }
-                        } else if (qType === 'radio' || qType === 'rating' || qType === 'text') {
+                        } else if (qType === 'radio' || qType === 'dropdown' || qType === 'rating' || qType === 'text') {
                             const val = formData.get(fieldName);
                             if (val !== null && val !== '') {
                                 if (qType === 'rating') {

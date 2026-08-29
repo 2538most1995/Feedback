@@ -115,6 +115,7 @@ if ($method === 'GET') {
                         $qText = trim($question['question_text'] ?? '');
                         if (empty($qText)) continue;
                         
+                        $qDescription = trim($question['question_description'] ?? $question['description'] ?? '');
                         $qType = $question['question_type'] ?? 'rating';
                         $optionsJson = null;
                         if (!empty($question['options']) && is_array($question['options'])) {
@@ -124,10 +125,11 @@ if ($method === 'GET') {
                             }
                         }
                         
-                        $stmtQ = $pdo->prepare("INSERT INTO survey_questions (section_id, question_text, question_type, options_json, is_required, sort_order) VALUES (?, ?, ?, ?, ?, ?)");
+                        $stmtQ = $pdo->prepare("INSERT INTO survey_questions (section_id, question_text, question_description, question_type, options_json, is_required, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)");
                         $stmtQ->execute([
                             $sectionId, 
                             $qText, 
+                            $qDescription,
                             $qType,
                             $optionsJson,
                             isset($question['is_required']) ? ($question['is_required'] ? 1 : 0) : 1,
@@ -191,6 +193,7 @@ if ($method === 'GET') {
                         $qText = trim($question['question_text'] ?? '');
                         if (empty($qText)) continue;
                         
+                        $qDescription = trim($question['question_description'] ?? $question['description'] ?? '');
                         $qType = $question['question_type'] ?? 'rating';
                         $optionsJson = null;
                         if (!empty($question['options']) && is_array($question['options'])) {
@@ -200,10 +203,11 @@ if ($method === 'GET') {
                             }
                         }
                         
-                        $stmtQ = $pdo->prepare("INSERT INTO survey_questions (section_id, question_text, question_type, options_json, is_required, sort_order) VALUES (?, ?, ?, ?, ?, ?)");
+                        $stmtQ = $pdo->prepare("INSERT INTO survey_questions (section_id, question_text, question_description, question_type, options_json, is_required, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)");
                         $stmtQ->execute([
                             $sectionId, 
                             $qText, 
+                            $qDescription,
                             $qType,
                             $optionsJson,
                             isset($question['is_required']) ? ($question['is_required'] ? 1 : 0) : 1,

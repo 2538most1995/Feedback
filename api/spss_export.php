@@ -198,7 +198,7 @@ try {
         $options = json_decode((string) ($question['options_json'] ?? ''), true);
         $options = is_array($options) ? array_values(array_map('strval', $options)) : [];
 
-        if ($questionType === 'radio') {
+        if ($questionType === 'radio' || $questionType === 'dropdown') {
             $encoded = spssEncodeCategories($values, $options);
             $variables[] = spssNumericVariable($variableName, $questionLabel, $encoded['data'], Variable::MEASURE_NOMINAL, $encoded['labels']);
             continue;
